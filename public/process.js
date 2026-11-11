@@ -5,11 +5,12 @@
   const rail=section.querySelector('.process-rail');
   const track=section.querySelector('.process-track');
   const cards=[...section.querySelectorAll('.process-card')];
+  const SLICES=8;
 
   function maxOffset(){
     return Math.max(0,track.scrollWidth-rail.clientWidth);
   }
-  let x=0,vx=0,dragging=false,lastX=0,lastT=0,raf=0;
+  let x=0,vx=0,dragging=false,lastX=0,lastT=0,raf=0,moved=0;
 
   function apply(){
     const max=maxOffset();
@@ -26,7 +27,7 @@
   }
   function onPointerDown(event){
     if(event.button!=null&&event.button!==0)return;
-    dragging=true;rail.classList.add('is-dragging');
+    dragging=true;moved=0;rail.classList.add('is-dragging');
     vx=0;if(raf){cancelAnimationFrame(raf);raf=0}
     lastX=event.clientX;lastT=performance.now();
     rail.setPointerCapture?.(event.pointerId);
@@ -36,6 +37,7 @@
     const now=performance.now();
     const dx=event.clientX-lastX;
     const dt=Math.max(1,now-lastT);
+    moved+=Math.abs(dx);
     x+=dx;
     vx=dx/dt*16;
     lastX=event.clientX;lastT=now;
@@ -61,34 +63,72 @@
   },{passive:false});
   window.addEventListener('resize',()=>apply(),{passive:true});
 
-  // Clip-path hover reveal (Tympanus-style) without background imagery — only card layers.
-  function setClip(card,clientX,clientY,radius){
+  // Tympanus-style ClipHover: sliced reveal of the accent face (no background image).
+  function buildSlices(card){
     const hover=card.querySelector('.process-card-hover');
-    if(!hover)return;
-    const box=card.getBoundingClientRect();
-    const px=((clientX-box.left)/box.width)*100;
-    const py=((clientY-box.top)/box.height)*100;
-    hover.style.clipPath=`circle(${radius}px at ${px}% ${py}%)`;
-  }
-  cards.forEach(card=>{
-    const hover=card.querySelector('.process-card-hover');
-    if(!hover)return;
+    if(!hover||hover.dataset.slicesReady)return hover;
+    hover.dataset.slicesReady='1';
+    hover.replaceChildren();
     if(reduced){
-      card.addEventListener('pointerenter',()=>{hover.style.clipPath='inset(0)'});
-      card.addEventListener('pointerleave',()=>{hover.style.clipPath='circle(0% at 50% 50%)'});
-      return;
+      hover.classList.add('is-plain');
+      return hover;
     }
-    card.addEventListener('pointerenter',event=>setClip(card,event.clientX,event.clientY,Math.max(card.offsetWidth,card.offsetHeight)*1.2));
-    card.addEventListener('pointermove',event=>setClip(card,event.clientX,event.clientY,Math.max(card.offsetWidth,card.offsetHeight)*1.25));
-    card.addEventListener('pointerleave',event=>{
-      const box=card.getBoundingClientRect();
-      const px=((event.clientX-box.left)/box.width)*100;
-      const py=((event.clientY-box.top)/box.height)*100;
-      hover.style.transition='clip-path .45s ease';
-      hover.style.clipPath=`circle(0% at ${px}% ${py}%)`;
-      const clear=()=>{hover.style.transition='';hover.removeEventListener('transitionend',clear)};
-      hover.addEventListener('transitionend',clear);
-    });
+    const wrap=document.createElement('div');
+    wrap.className='process-card-slices';
+    wrap.dataset.orientation='vertical';
+    wrap.style.setProperty('--slices',String(SLICES));
+    for(let i=0;i<SLICES;i++){
+      const slice=document.createElement('div');
+      slice.className='process-card-slice';
+      const fill=document.createElement('span');
+      const delay=(i%2?0.04:0)+(i*0.03);
+      fill.style.transition=`transform .55s cubic-bezier(.19,1,.22,1) ${delay}s, opacity .45s ease ${delay}s`;
+      fill.style.transform=`translate3d(0,${i%2?'-110%':'110%'},0)`;
+      slice.append(fill);
+      wrap.append(slice);
+    }
+    hover.append(wrap);
+    // Keep readable hover copy above the slices.
+    const content=card.querySelector('.process-card-base').cloneNode(true);
+    content.classList.remove('process-card-base');
+    content.classList.add('process-card-hover-copy');
+    content.style.cssText='position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:inherit;box-sizing:border-box;color:#101010;opacity:0;transition:opacity .35s ease .08s;pointer-events:none';
+    // Copy padding from face via class - use same face padding by making it a face
+    content.classList.add('process-card-face');
+    content.style.background='transparent';
+    hover.append(content);
+    return hover;
+  }
+
+  function setHover(card,on){
+    const hover=buildSlices(card);
+    if(!hover)return;
+    card.classList.toggle('is-hover',on);
+    const copy=hover.querySelector('.process-card-hover-copy');
+    if(copy)copy.style.opacity=on?'1':'0';
+    if(on&&!reduced&&typeof reveal==='function'){
+      copy?.querySelectorAll('.process-card-title,.process-index,.process-card-days').forEach(el=>{
+        el.dataset.ready='';
+        reveal(el,0,220);
+      });
+    }
+    if(!on&&!reduced){
+      hover.querySelectorAll('.process-card-slice>span').forEach((fill,i)=>{
+        fill.style.transform=`translate3d(0,${i%2?'-110%':'110%'},0)`;
+      });
+    }else if(on&&!reduced){
+      hover.querySelectorAll('.process-card-slice>span').forEach(fill=>{
+        fill.style.transform='translate3d(0,0,0)';
+      });
+    }
+  }
+
+  cards.forEach(card=>{
+    buildSlices(card);
+    card.addEventListener('pointerenter',()=>{if(!dragging)setHover(card,true)});
+    card.addEventListener('pointerleave',()=>setHover(card,false));
+    // Keep hover while moving over the card even if a tiny drag started.
+    card.addEventListener('pointermove',()=>{if(!dragging||moved<6)setHover(card,true)});
   });
 
   // Inherit site-wide crypto/fx reveal on first intersection.
