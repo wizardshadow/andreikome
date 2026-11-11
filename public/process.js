@@ -1,5 +1,7 @@
 (() => {
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Key off pointer quality, not hover media — headless Chrome reports hover:none.
+  const coarse=matchMedia('(pointer: coarse)').matches;
   const section=document.querySelector('#process');
   if(!section)return;
   const rail=section.querySelector('.process-rail');
@@ -10,12 +12,14 @@
   function maxOffset(){
     return Math.max(0,track.scrollWidth-rail.clientWidth);
   }
-  let x=0,vx=0,dragging=false,lastX=0,lastT=0,raf=0,moved=0;
+  let x=0,vx=0,dragging=false,lastX=0,lastT=0,raf=0,moved=0,activeIndex=0;
+  let pressCard=null,tapped=null;
 
   function apply(){
     const max=maxOffset();
     x=Math.min(0,Math.max(-max,x));
     track.style.transform=`translate3d(${x}px,0,0)`;
+    syncActive();
   }
   function kinetic(){
     if(dragging)return;
@@ -23,13 +27,27 @@
     vx*=.92;
     apply();
     if(Math.abs(vx)>0.08)raf=requestAnimationFrame(kinetic);
-    else{vx=0;raf=0}
+    else{vx=0;raf=0;syncActive()}
+  }
+  function syncActive(){
+    const railBox=rail.getBoundingClientRect();
+    const center=railBox.left+railBox.width/2;
+    let best=0,bestDist=Infinity;
+    cards.forEach((card,i)=>{
+      const box=card.getBoundingClientRect();
+      const mid=box.left+box.width/2;
+      const dist=Math.abs(mid-center);
+      if(dist<bestDist){bestDist=dist;best=i}
+    });
+    activeIndex=best;
+    cards.forEach((card,i)=>card.classList.toggle('is-active',i===best));
   }
   function onPointerDown(event){
     if(event.button!=null&&event.button!==0)return;
     dragging=true;moved=0;rail.classList.add('is-dragging');
     vx=0;if(raf){cancelAnimationFrame(raf);raf=0}
     lastX=event.clientX;lastT=performance.now();
+    pressCard=event.target.closest?.('.process-card')||null;
     rail.setPointerCapture?.(event.pointerId);
   }
   function onPointerMove(event){
@@ -47,14 +65,22 @@
     if(!dragging)return;
     dragging=false;rail.classList.remove('is-dragging');
     try{rail.releasePointerCapture?.(event.pointerId)}catch{}
+    // Coarse pointer: tap toggles ClipHover (rail capture steals card pointerup).
+    if(coarse&&moved<=8&&pressCard){
+      const turnOn=tapped!==pressCard;
+      if(tapped&&tapped!==pressCard)setHover(tapped,false);
+      tapped=turnOn?pressCard:null;
+      setHover(pressCard,turnOn);
+    }
+    pressCard=null;
     if(!reduced&&Math.abs(vx)>0.4)raf=requestAnimationFrame(kinetic);
-    else vx=0;
+    else{vx=0;syncActive()}
   }
   rail.addEventListener('pointerdown',onPointerDown);
   rail.addEventListener('pointermove',onPointerMove);
   rail.addEventListener('pointerup',onPointerUp);
   rail.addEventListener('pointercancel',onPointerUp);
-  rail.addEventListener('lostpointercapture',()=>{dragging=false;rail.classList.remove('is-dragging')});
+  rail.addEventListener('lostpointercapture',()=>{dragging=false;rail.classList.remove('is-dragging');pressCard=null});
   rail.addEventListener('wheel',event=>{
     if(Math.abs(event.deltaX)<Math.abs(event.deltaY)&&!event.shiftKey)return;
     event.preventDefault();
@@ -63,7 +89,7 @@
   },{passive:false});
   window.addEventListener('resize',()=>apply(),{passive:true});
 
-  // Tympanus-style ClipHover: sliced reveal of the accent face (no background image).
+  // ClipHover slices sit under the base content; they never hide card copy by default.
   function buildSlices(card){
     const hover=card.querySelector('.process-card-hover');
     if(!hover||hover.dataset.slicesReady)return hover;
@@ -88,50 +114,42 @@
       wrap.append(slice);
     }
     hover.append(wrap);
-    // Keep readable hover copy above the slices.
-    const content=card.querySelector('.process-card-base').cloneNode(true);
-    content.classList.remove('process-card-base');
-    content.classList.add('process-card-hover-copy');
-    content.style.cssText='position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:inherit;box-sizing:border-box;color:#101010;opacity:0;transition:opacity .35s ease .08s;pointer-events:none';
-    // Copy padding from face via class - use same face padding by making it a face
-    content.classList.add('process-card-face');
-    content.style.background='transparent';
-    hover.append(content);
     return hover;
   }
 
   function setHover(card,on){
-    const hover=buildSlices(card);
-    if(!hover)return;
+    buildSlices(card);
     card.classList.toggle('is-hover',on);
-    const copy=hover.querySelector('.process-card-hover-copy');
-    if(copy)copy.style.opacity=on?'1':'0';
-    if(on&&!reduced&&typeof reveal==='function'){
-      copy?.querySelectorAll('.process-card-title,.process-index,.process-card-days').forEach(el=>{
-        el.dataset.ready='';
-        reveal(el,0,220);
+    if(!reduced){
+      card.querySelectorAll('.process-card-slice>span').forEach((fill,i)=>{
+        fill.style.transform=on?'translate3d(0,0,0)':`translate3d(0,${i%2?'-110%':'110%'},0)`;
+        fill.style.opacity=on?'1':'0';
       });
     }
-    if(!on&&!reduced){
-      hover.querySelectorAll('.process-card-slice>span').forEach((fill,i)=>{
-        fill.style.transform=`translate3d(0,${i%2?'-110%':'110%'},0)`;
-      });
-    }else if(on&&!reduced){
-      hover.querySelectorAll('.process-card-slice>span').forEach(fill=>{
-        fill.style.transform='translate3d(0,0,0)';
+    if(on&&!reduced&&typeof reveal==='function'){
+      card.querySelectorAll('.process-card-base .process-card-title,.process-card-base .process-index,.process-card-base .process-card-days').forEach(el=>{
+        el.dataset.ready='';
+        reveal(el,0,220);
       });
     }
   }
 
   cards.forEach(card=>{
     buildSlices(card);
-    card.addEventListener('pointerenter',()=>{if(!dragging)setHover(card,true)});
-    card.addEventListener('pointerleave',()=>setHover(card,false));
-    // Keep hover while moving over the card even if a tiny drag started.
-    card.addEventListener('pointermove',()=>{if(!dragging||moved<6)setHover(card,true)});
+    if(!coarse){
+      card.addEventListener('pointerenter',()=>{if(!dragging)setHover(card,true)});
+      card.addEventListener('pointerleave',()=>setHover(card,false));
+    }
+  });
+  document.addEventListener('pointerdown',event=>{
+    if(!tapped)return;
+    if(tapped.contains(event.target))return;
+    setHover(tapped,false);
+    tapped=null;
   });
 
-  // Inherit site-wide crypto/fx reveal on first intersection.
+  syncActive();
+
   function intro(){
     const steps=[...section.querySelectorAll('[data-process-step]')];
     if(typeof prepare==='function')section.querySelectorAll('.fx').forEach(el=>prepare(el));
@@ -157,6 +175,7 @@
           if(!reduced)await railStep.animate([{opacity:0,transform:'translate3d(40px,0,0)'},{opacity:1,transform:'translate3d(0,0,0)'}],{duration:700,easing:'ease-out'}).finished.catch(()=>{});
         }
         if(summary)await revealLayer(summary,other);
+        syncActive();
       }finally{section.classList.remove('is-pending')}
     },{threshold:0,rootMargin:'0px 0px -12% 0px'});
     observer.observe(section);
