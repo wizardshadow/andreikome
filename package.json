@@ -1,0 +1,10 @@
+{
+  "name": "andreiko-agency",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node tests/cms.test.mjs",
+    "dev": "node scripts/dev.mjs"
+  }
+}

@@ -1,0 +1,9 @@
+import fs from 'node:fs/promises';import path from 'node:path';import crypto from 'node:crypto';
+export class LocalBucket{
+ constructor(root){this.root=root}
+ file(key){if(key.split('/').includes('..'))throw Error('Invalid key');return path.join(this.root,key)}
+ async get(key){try{const data=await fs.readFile(this.file(key)),meta=JSON.parse(await fs.readFile(this.file(key)+'.meta','utf8'));return{key,size:data.length,etag:meta.etag,httpMetadata:meta.httpMetadata||{},customMetadata:meta.customMetadata||{},json:async()=>JSON.parse(data.toString()),arrayBuffer:async()=>data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength)}}catch(error){if(error.code==='ENOENT')return null;throw error}}
+ async put(key,body,options={}){const previous=await this.get(key);if(options.onlyIf?.etagMatches&&options.onlyIf.etagMatches!==previous?.etag)return null;if(options.onlyIf?.etagDoesNotMatch==='*'&&previous)return null;const data=typeof body==='string'?Buffer.from(body):Buffer.from(body),etag=crypto.createHash('sha256').update(data).digest('hex');await fs.mkdir(path.dirname(this.file(key)),{recursive:true});await fs.writeFile(this.file(key),data);await fs.writeFile(this.file(key)+'.meta',JSON.stringify({etag,httpMetadata:options.httpMetadata,customMetadata:options.customMetadata}));return{etag}}
+ async delete(key){await fs.rm(this.file(key),{force:true});await fs.rm(this.file(key)+'.meta',{force:true})}
+ async list({prefix='',limit=1000}={}){const objects=[];async function walk(dir,base){try{for(const entry of await fs.readdir(dir,{withFileTypes:true})){const key=path.posix.join(base,entry.name);if(entry.isDirectory())await walk(path.join(dir,entry.name),key);else if(!key.endsWith('.meta')&&key.startsWith(prefix))objects.push({key})}}catch(error){if(error.code!=='ENOENT')throw error}}await walk(this.root,'');return{objects:objects.slice(0,limit),truncated:objects.length>limit}}
+}

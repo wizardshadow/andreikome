@@ -1,0 +1,5 @@
+node_modules/
+.cms-local/
+.env*
+.dev.vars*
+dist/
