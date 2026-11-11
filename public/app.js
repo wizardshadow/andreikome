@@ -47,13 +47,167 @@ async function revealLayer(layer,duration=window.SITE_CONTENT.effects.heroTextMs
     await Promise.all([...ready,animation.finished]);
   }else await Promise.all(ready);
 }
-// Reveal the page only after its initial images and brand fonts are ready.
+let enabled=true,unlocked=false,lastSound=0;try{enabled=localStorage.getItem('andreiko-sound')!=='off'}catch{}
+const taps=Array.from({length:5},(_,i)=>{let a=new Audio(`assets/tap_0${i+1}.mp3`);a.volume=.15;a.preload='auto';return a});
+function sound(){if(!enabled||!unlocked)return;if(performance.now()-lastSound<65)return;lastSound=performance.now();const a=taps[Math.floor(Math.random()*taps.length)].cloneNode();a.volume=.15;a.play().catch(()=>{})}
+const soundBtn=document.querySelector('.sound');
+function updateSound(){soundBtn.dataset.ready='';soundBtn.textContent=enabled?'Звук [ вкл ]':'Звук [ выкл ]';soundBtn.setAttribute('aria-pressed',enabled);soundBtn.setAttribute('aria-label',enabled?'Выключить звук':'Включить звук');prepare(soundBtn)}
+soundBtn.onclick=()=>{enabled=!enabled;try{localStorage.setItem('andreiko-sound',enabled?'on':'off')}catch{}updateSound()};
+
+function easeOutCubic(t){return 1-Math.pow(1-t,3)}
+function prepareLoaderText(el){
+  if(el.dataset.ready)return el._loaderChars||[];
+  const text=el.textContent;el.dataset.ready='1';el.setAttribute('aria-label',text);el.textContent='';
+  const nodes=[];
+  [...text].forEach(c=>{
+    if(c===' '){el.append(' ');return}
+    const span=document.createElement('span');span.className='preloader-char';span.dataset.char=c;span.textContent=c;el.append(span);nodes.push(span);
+  });
+  el._loaderChars=nodes;return nodes;
+}
+function decodeLoaderText(el,{delay=100,withCursor=true}={}){
+  const nodes=prepareLoaderText(el);el.classList.add('is-ready');
+  if(withCursor)el.classList.add('is-typing');
+  if(reduced){nodes.forEach(n=>n.textContent=n.dataset.char);el.classList.remove('is-typing');return Promise.resolve()}
+  nodes.forEach(n=>n.textContent='\u00a0');
+  const step=28,scramble=140,total=delay+nodes.length*step+scramble;
+  const start=performance.now();
+  return new Promise(resolve=>{
+    const tick=now=>{
+      const t=now-start;
+      nodes.forEach((span,i)=>{
+        const progress=t-delay-i*step;
+        if(progress<0){span.textContent='\u00a0';span.classList.remove('is-flash')}
+        else if(progress<scramble){span.textContent=chars[Math.floor(Math.random()*chars.length)];span.classList.add('is-flash')}
+        else{span.textContent=span.dataset.char;span.classList.remove('is-flash')}
+      });
+      if(t<total)requestAnimationFrame(tick);
+      else{el.classList.remove('is-typing');resolve()}
+    };
+    requestAnimationFrame(tick);
+  });
+}
+function startStatusScroller(root){
+  const list=root.querySelector('.preloader-items');
+  const items=[...root.querySelectorAll('.preloader-item')];
+  if(!list||!items.length)return()=>{};
+  if(reduced){
+    items.forEach((item,i)=>item.classList.toggle('is-active',i===0));
+    return()=>{};
+  }
+  let frame=0,start=performance.now(),cycle=3000,stopped=false;
+  const markActive=()=>{
+    const wrap=list.parentElement;if(!wrap)return;
+    const mid=wrap.getBoundingClientRect().top+wrap.offsetHeight/2;
+    items.forEach(item=>{
+      const box=item.getBoundingClientRect();
+      const center=box.top+box.height/2;
+      const active=Math.abs(center-mid)<=box.height;
+      item.classList.toggle('is-active',active);
+    });
+  };
+  const step=now=>{
+    if(stopped)return;
+    const elapsed=(now-start)%cycle;
+    const y=-(elapsed/cycle)*50;
+    list.style.transform=`translate3d(0,${y}%,0)`;
+    markActive();
+    frame=requestAnimationFrame(step);
+  };
+  frame=requestAnimationFrame(step);
+  return()=>{stopped=true;cancelAnimationFrame(frame)};
+}
+function animateProgress(el,targetGetter,{minMs=2800,maxMs=10000}={}){
+  return new Promise(resolve=>{
+    const start=performance.now();
+    const tick=now=>{
+      const elapsed=now-start;
+      const asset=Math.min(1,Math.max(0,targetGetter()));
+      const time=easeOutCubic(Math.min(1,elapsed/minMs));
+      let value=Math.min(.97,time*.72+asset*.25);
+      if((asset>=1&&elapsed>=minMs)||elapsed>=maxMs)value=1;
+      el.textContent=value>=1?'( done )':`( ${Math.round(value*100)}% )`;
+      if(value>=1)resolve();
+      else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+async function runEmotionPreloader(){
+  const root=document.querySelector('.preloader');
+  if(!root)return {withSound:enabled};
+  const progressEl=root.querySelector('.preloader-progress');
+  const textEl=root.querySelector('.preloader-text');
+  const soundIcon=root.querySelector('.preloader-sound-icon');
+  const soundText=root.querySelector('.preloader-sound-text');
+  const buttons=root.querySelector('.preloader-btns');
+  const stopScroll=startStatusScroller(root);
+  decodeLoaderText(textEl,{delay:100,withCursor:true});
+
+  // Resolve the audio choice via delegation as soon as the loader mounts.
+  let settleGate;
+  const gateChoice=new Promise(resolve=>{settleGate=resolve});
+  const onGateClick=event=>{
+    const btn=event.target.closest('[data-sound]');
+    if(!btn||!root.contains(btn)||root.dataset.phase!=='gate')return;
+    event.preventDefault();
+    root.removeEventListener('click',onGateClick);
+    root.querySelectorAll('[data-sound]').forEach(node=>node.disabled=true);
+    settleGate({withSound:btn.dataset.sound==='on'});
+  };
+  root.addEventListener('click',onGateClick);
+
+  let assetProgress=0;
+  const images=[...document.querySelectorAll('.hero img')];
+  const fontsReady=Promise.allSettled([
+    document.fonts.load('700 96px Benzin'),
+    document.fonts.load('600 16px Sonko'),
+    document.fonts.load('400 16px Sonko'),
+    document.fonts.load('500 12px "IBM Plex Mono"')
+  ]).then(()=>{assetProgress=Math.max(assetProgress,.55)});
+  const imagesReady=Promise.allSettled(images.map(img=>img.decode().catch(()=>{}))).then(()=>{assetProgress=Math.max(assetProgress,.9)});
+  Promise.all([fontsReady,imagesReady]).then(()=>{assetProgress=1});
+
+  if(reduced){
+    progressEl.textContent='( done )';
+    assetProgress=1;
+  }else{
+    await animateProgress(progressEl,()=>assetProgress,{minMs:2800,maxMs:10000});
+  }
+  clearTimeout(window._loaderFallback);
+  await wait(reduced?0:1300);
+  stopScroll();
+
+  // Transition into the audio gate, matching Emotion's staged reveal.
+  root.dataset.phase='gate';
+  const loadingBits=[...root.querySelectorAll('.preloader-item,.preloader-progress,.preloader-text')];
+  await Promise.all(loadingBits.map((el,i)=>el.animate([
+    {opacity:1,transform:'scale(1)'},
+    {opacity:0,transform:'scale(1.1)'}
+  ],{duration:reduced?1:300,delay:reduced?0:el.classList.contains('preloader-progress')||el.classList.contains('preloader-text')?150:0,fill:'forwards',easing:'ease'}).finished.catch(()=>{})));
+  loadingBits.forEach(el=>{el.style.visibility='hidden';el.style.opacity='0'});
+
+  root.classList.add('is-gate');
+  soundIcon.style.visibility='visible';
+  soundText.style.visibility='visible';
+  buttons.style.visibility='visible';
+  buttons.style.pointerEvents='auto';
+  await decodeLoaderText(soundText,{delay:reduced?0:200,withCursor:false});
+  return gateChoice;
+}
+async function dismissPreloader(){
+  const root=document.querySelector('.preloader');
+  if(!root)return;
+  root.classList.add('is-exit');
+  await wait(reduced?0:300);
+  document.documentElement.classList.remove('loading');
+  root.remove();
+  const theme=document.querySelector('meta[name="theme-color"]');
+  if(theme)theme.setAttribute('content','#000000');
+}
+// Reveal the page only after its Emotion-style loader and audio gate finish.
 async function bootSite(){
-  const images=[...document.querySelectorAll('.hero img')].map(img=>img.decode().catch(()=>{}));
-  const fonts=Promise.allSettled([document.fonts.load('700 96px Benzin'),document.fonts.load('600 16px Sonko'),document.fonts.load('400 16px Sonko')]);
-  let timeout;
-  await Promise.race([Promise.allSettled([...images,fonts]),new Promise(resolve=>{timeout=setTimeout(resolve,10000)})]);
-  clearTimeout(timeout);clearTimeout(window._loaderFallback);
   const hero=document.querySelector('.hero');hero.inert=true;
   const brand=[hero.querySelector('.brand h1'),hero.querySelector('.brand p')];
   const blocks=[...hero.querySelectorAll('.intro,.services,.navigation,.sound,footer')]
@@ -61,8 +215,13 @@ async function bootSite(){
   const layers=[...brand,...blocks];
   const sliderLayers=[...hero.querySelectorAll('.thumbnails,.project-card')];
   [...layers,...sliderLayers].forEach(el=>{el.style.visibility='hidden'});
-  document.documentElement.classList.remove('loading');
-  document.querySelector('.preloader').remove();
+  let choice={withSound:enabled};
+  try{choice=await runEmotionPreloader()}catch(error){console.error(error);clearTimeout(window._loaderFallback);choice={withSound:enabled}}
+  enabled=!!choice.withSound;
+  unlocked=true;
+  try{localStorage.setItem('andreiko-sound',enabled?'on':'off')}catch{}
+  updateSound();
+  await dismissPreloader();
   try{
     await Promise.all([assembleFirstSlide(),revealLayer(hero.querySelector('.project-card'))]);
     document.documentElement.classList.remove('slide-pending');
@@ -70,14 +229,10 @@ async function bootSite(){
     await assembleThumbnails();
   }
   finally{hero.inert=false;document.documentElement.classList.remove('slide-pending')}
-
 }
-let enabled=true,unlocked=false,lastSound=0;try{enabled=localStorage.getItem('andreiko-sound')!=='off'}catch{}
-const taps=Array.from({length:5},(_,i)=>{let a=new Audio(`assets/tap_0${i+1}.mp3`);a.volume=.15;a.preload='auto';return a});
-function sound(){if(!enabled||!unlocked)return;if(performance.now()-lastSound<65)return;lastSound=performance.now();const a=taps[Math.floor(Math.random()*taps.length)].cloneNode();a.volume=.15;a.play().catch(()=>{})}
 document.addEventListener('pointerdown',()=>{unlocked=true},{once:true});document.addEventListener('keydown',()=>{unlocked=true},{once:true});
 document.querySelectorAll('button,a').forEach(el=>{el.addEventListener('pointerenter',()=>{sound();if(el.classList.contains('fx'))reveal(el)});el.addEventListener('focus',()=>{if(el.classList.contains('fx'))reveal(el)})});
-const soundBtn=document.querySelector('.sound');function updateSound(){soundBtn.dataset.ready='';soundBtn.textContent=enabled?'Звук [ вкл ]':'Звук [ выкл ]';soundBtn.setAttribute('aria-pressed',enabled);soundBtn.setAttribute('aria-label',enabled?'Выключить звук':'Включить звук');prepare(soundBtn)}updateSound();soundBtn.onclick=()=>{enabled=!enabled;try{localStorage.setItem('andreiko-sound',enabled?'on':'off')}catch{}updateSound()};
+updateSound();
 const thumbs=[...document.querySelectorAll('.thumb')],project=document.querySelector('#project'),card=document.querySelector('.project-card'),viewer=document.querySelector('#viewer');let current=window.SITE_CONTENT.hero.initialSlide;
 const pixelCanvas=document.createElement('canvas');pixelCanvas.className='pixel-transition';pixelCanvas.hidden=true;pixelCanvas.setAttribute('aria-hidden','true');project.after(pixelCanvas);
 const pixelContext=pixelCanvas.getContext('2d');
