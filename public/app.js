@@ -136,27 +136,11 @@ function animateProgress(el,targetGetter,{minMs=2800,maxMs=10000}={}){
 function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 async function runEmotionPreloader(){
   const root=document.querySelector('.preloader');
-  if(!root)return {withSound:enabled};
+  if(!root)return;
   const progressEl=root.querySelector('.preloader-progress');
   const textEl=root.querySelector('.preloader-text');
-  const soundIcon=root.querySelector('.preloader-sound-icon');
-  const soundText=root.querySelector('.preloader-sound-text');
-  const buttons=root.querySelector('.preloader-btns');
   const stopScroll=startStatusScroller(root);
   decodeLoaderText(textEl,{delay:100,withCursor:true});
-
-  // Resolve the audio choice via delegation as soon as the loader mounts.
-  let settleGate;
-  const gateChoice=new Promise(resolve=>{settleGate=resolve});
-  const onGateClick=event=>{
-    const btn=event.target.closest('[data-sound]');
-    if(!btn||!root.contains(btn)||root.dataset.phase!=='gate')return;
-    event.preventDefault();
-    root.removeEventListener('click',onGateClick);
-    root.querySelectorAll('[data-sound]').forEach(node=>node.disabled=true);
-    settleGate({withSound:btn.dataset.sound==='on'});
-  };
-  root.addEventListener('click',onGateClick);
 
   let assetProgress=0;
   const images=[...document.querySelectorAll('.hero img')];
@@ -176,37 +160,24 @@ async function runEmotionPreloader(){
     await animateProgress(progressEl,()=>assetProgress,{minMs:2800,maxMs:10000});
   }
   clearTimeout(window._loaderFallback);
-  await wait(reduced?0:1300);
+  await wait(reduced?0:400);
   stopScroll();
-
-  // Transition into the audio gate, matching Emotion's staged reveal.
-  root.dataset.phase='gate';
+  root.dataset.phase='done';
   const loadingBits=[...root.querySelectorAll('.preloader-item,.preloader-progress,.preloader-text')];
-  await Promise.all(loadingBits.map((el,i)=>el.animate([
+  await Promise.all(loadingBits.map(el=>el.animate([
     {opacity:1,transform:'scale(1)'},
-    {opacity:0,transform:'scale(1.1)'}
-  ],{duration:reduced?1:300,delay:reduced?0:el.classList.contains('preloader-progress')||el.classList.contains('preloader-text')?150:0,fill:'forwards',easing:'ease'}).finished.catch(()=>{})));
-  loadingBits.forEach(el=>{el.style.visibility='hidden';el.style.opacity='0'});
-
-  root.classList.add('is-gate');
-  soundIcon.style.visibility='visible';
-  soundText.style.visibility='visible';
-  buttons.style.visibility='visible';
-  buttons.style.pointerEvents='auto';
-  await decodeLoaderText(soundText,{delay:reduced?0:200,withCursor:false});
-  return gateChoice;
+    {opacity:0,transform:'scale(1.05)'}
+  ],{duration:reduced?1:280,fill:'forwards',easing:'ease'}).finished.catch(()=>{})));
 }
 async function dismissPreloader(){
   const root=document.querySelector('.preloader');
   if(!root)return;
   root.classList.add('is-exit');
-  await wait(reduced?0:300);
+  await wait(reduced?0:280);
   document.documentElement.classList.remove('loading');
   root.remove();
-  const theme=document.querySelector('meta[name="theme-color"]');
-  if(theme)theme.setAttribute('content','#000000');
 }
-// Reveal the page only after its Emotion-style loader and audio gate finish.
+// Reveal the page after the branded Emotion-style loader finishes (no audio gate).
 async function bootSite(){
   const hero=document.querySelector('.hero');hero.inert=true;
   const brand=[hero.querySelector('.brand h1'),hero.querySelector('.brand p')];
@@ -215,11 +186,7 @@ async function bootSite(){
   const layers=[...brand,...blocks];
   const sliderLayers=[...hero.querySelectorAll('.thumbnails,.project-card')];
   [...layers,...sliderLayers].forEach(el=>{el.style.visibility='hidden'});
-  let choice={withSound:enabled};
-  try{choice=await runEmotionPreloader()}catch(error){console.error(error);clearTimeout(window._loaderFallback);choice={withSound:enabled}}
-  enabled=!!choice.withSound;
-  unlocked=true;
-  try{localStorage.setItem('andreiko-sound',enabled?'on':'off')}catch{}
+  try{await runEmotionPreloader()}catch(error){console.error(error);clearTimeout(window._loaderFallback)}
   updateSound();
   await dismissPreloader();
   try{
