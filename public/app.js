@@ -71,7 +71,7 @@ function reveal(el,delay=0,duration=null){
     },16);
   });
 }
-// Reveal layers sequentially; the first screen defaults to 160 ms per layer.
+// Reveal every .fx node inside a layer together (shared duration, no stagger).
 async function revealLayer(layer,duration=window.SITE_CONTENT.effects.heroTextMs){
   const texts=layer.matches('.fx')?[layer]:[...layer.querySelectorAll('.fx')];
   const ready=texts.map(el=>reveal(el,0,duration));
@@ -224,10 +224,16 @@ async function bootSite(){
   updateSound();
   await dismissPreloader();
   try{
-    await Promise.all([assembleFirstSlide(),revealLayer(hero.querySelector('.project-card'))]);
+    // First screen: every hero element starts and finishes together (shared 600ms).
     document.documentElement.classList.remove('slide-pending');
-    for(const layer of layers)await revealLayer(layer);
-    await assembleThumbnails();
+    const duration=window.SITE_CONTENT.effects.heroTextMs;
+    const card=hero.querySelector('.project-card');
+    await Promise.all([
+      assembleFirstSlide(),
+      card?revealLayer(card,duration):Promise.resolve(),
+      ...layers.map(layer=>revealLayer(layer,duration)),
+      assembleThumbnails()
+    ]);
   }
   finally{hero.inert=false;document.documentElement.classList.remove('slide-pending')}
 }
@@ -263,7 +269,7 @@ async function assembleFirstSlide(){
     slideFrame=requestAnimationFrame(frame);
   });
 }
-// Resolve the thumbnail switcher from coarse pixels after all hero text.
+// Resolve the thumbnail switcher from coarse pixels (runs with the shared hero reveal).
 async function assembleThumbnails(){
   const switcher=document.querySelector('.thumbnails');
   if(reduced){switcher.style.visibility='visible';return}

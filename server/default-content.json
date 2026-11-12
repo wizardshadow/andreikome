@@ -290,7 +290,7 @@
     "buttonLabel": "Написать в Telegram ↗"
   },
   "effects": {
-    "heroTextMs": 160,
+    "heroTextMs": 600,
     "heroSlideMs": 600,
     "heroPreviewMs": 600,
     "slideMs": 1000,
