@@ -1,11 +1,24 @@
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!<>-_[]{}—+=*';
+function originalText(el){
+  return el.dataset.original||el.getAttribute('aria-label')||el.textContent;
+}
+function appendSpace(target,char=' '){
+  // Space must be a real letter node — flex/grid drop bare whitespace text nodes.
+  const span=document.createElement('span');span.className='letter space';span.dataset.char=char===' '? '\u00a0':char;
+  const glyph=document.createElement('span');glyph.className='glyph';glyph.textContent=span.dataset.char;
+  span.append(glyph);span.setAttribute('aria-hidden','true');target.append(span);
+}
 function prepare(el){
-  if(el.dataset.ready)return;
-  const text=el.textContent;el.setAttribute('aria-label',text);el.dataset.ready='1';el.textContent='';
+  if(el.dataset.ready==='1'&&el.querySelector('.letter'))return;
+  const text=originalText(el);
+  el.dataset.original=text;el.setAttribute('aria-label',text);el.dataset.ready='1';el.textContent='';
   text.split(/(\s+)/u).filter(Boolean).forEach(token=>{
-    // Leave spaces as text nodes so wrapping is allowed only between words.
-    if(/^\s+$/u.test(token)){el.append(token);return}
+    if(/^\s+$/u.test(token)){
+      const gap=document.createElement('span');gap.className='word space-word';
+      [...token].forEach(c=>appendSpace(gap,c===' '?'\u00a0':c));
+      el.append(gap);return;
+    }
     const word=document.createElement('span');word.className='word';
     [...token].forEach(c=>{
       const span=document.createElement('span');span.className='letter';span.dataset.char=c;
@@ -15,25 +28,45 @@ function prepare(el){
     el.append(word);
   });
 }
+function settleReveal(el){
+  if(!el)return;
+  if(el._timer){clearInterval(el._timer);el._timer=null}
+  prepare(el);
+  el.querySelectorAll('.letter').forEach(span=>{
+    const glyph=span.firstElementChild;if(!glyph)return;
+    glyph.textContent=span.dataset.char||'';span.classList.remove('flash');
+  });
+  const done=el._finishReveal;el._finishReveal=null;done?.();
+}
 function reveal(el,delay=0,duration=null){
-  prepare(el);clearInterval(el._timer);el._finishReveal?.();
-  if(reduced)return Promise.resolve();
+  // Never rebuild from mid-scramble DOM — original stays in data-original/aria-label.
+  if(el.dataset.ready==='1'&&!el.querySelector('.letter')&&el.dataset.original){
+    el.dataset.ready='';
+  }
+  prepare(el);clearInterval(el._timer);el._timer=null;
+  const prev=el._finishReveal;el._finishReveal=null;prev?.();
+  if(reduced){settleReveal(el);return Promise.resolve()}
   const letters=[...el.querySelectorAll('.letter')];
   const step=duration===null?14:Math.max(0,(duration-140)/Math.max(1,letters.length-1));
   const total=duration??(letters.length*14+170);
-  letters.forEach(span=>{span.firstElementChild.textContent='\u00a0';span.classList.remove('flash')});
+  letters.forEach(span=>{const glyph=span.firstElementChild;if(glyph)glyph.textContent='\u00a0';span.classList.remove('flash')});
   return new Promise(resolve=>{
     el._finishReveal=resolve;const start=performance.now()+delay;
     el._timer=setInterval(()=>{
       const t=performance.now()-start;
       letters.forEach((span,i)=>{
-        const original=span.dataset.char,glyph=span.firstElementChild,progress=t-i*step;
-        if(original===' '){glyph.textContent=' ';return}
+        const original=span.dataset.char,glyph=span.firstElementChild;if(!glyph)return;
+        const progress=t-i*step;
+        if(original===' '||original==='\u00a0'){glyph.textContent='\u00a0';span.classList.remove('flash');return}
         if(progress<0){glyph.textContent='\u00a0';span.classList.remove('flash')}
         else if(progress<140){glyph.textContent=chars[Math.floor(Math.random()*chars.length)];span.classList.add('flash')}
         else{glyph.textContent=original;span.classList.remove('flash')}
       });
-      if(t>=total){clearInterval(el._timer);el._finishReveal=null;resolve()}
+      if(t>=total){
+        clearInterval(el._timer);el._timer=null;
+        letters.forEach(span=>{const glyph=span.firstElementChild;if(glyph)glyph.textContent=span.dataset.char||'';span.classList.remove('flash')});
+        el._finishReveal=null;resolve();
+      }
     },16);
   });
 }

@@ -169,12 +169,18 @@
         fill.style.opacity=on?'1':'0';
       });
     }
-    if(on&&!reduced&&typeof reveal==='function'){
-      card.querySelectorAll(TEXT_SEL).forEach(el=>{
-        el.dataset.ready='';
-        reveal(el,0,220);
-      });
+    const nodes=card.querySelectorAll(TEXT_SEL);
+    if(!on){
+      // Leave hover: cancel mid-scramble and snap to original readable text.
+      nodes.forEach(el=>{if(typeof settleReveal==='function')settleReveal(el)});
+      return;
     }
+    if(reduced||typeof reveal!=='function')return;
+    nodes.forEach(el=>{
+      const len=(el.dataset.original||el.textContent||'').replace(/\s/g,'').length;
+      const duration=Math.max(280,Math.min(900,140+len*12));
+      reveal(el,0,duration);
+    });
   }
 
   cards.forEach(card=>{

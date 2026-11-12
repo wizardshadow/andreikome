@@ -1,0 +1,6 @@
+DirectoryIndex index.html
+Options -Indexes
+
+# Admin panel at /cpanel on static Apache (mchost)
+RewriteEngine On
+RewriteRule ^cpanel$ /cpanel/ [R=301,L]

@@ -85,8 +85,9 @@ export default{async fetch(request,env){try{
   const url=new URL(request.url),path=url.pathname;
   if(path.startsWith('/api/admin/'))return await adminApi(request,env,path);
   if(path==='/api/content')return json((await published(env)).content);
-  if(path==='/admin'||path==='/admin/'){
-    if(!identity(request))return Response.redirect(url.origin+'/signin-with-chatgpt?return_to=%2Fadmin',302);admin(request);return new Response(STATIC_ASSETS['admin.html'].body,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Frame-Options':'SAMEORIGIN'}});
+  if(path==='/admin'||path==='/admin/'||path==='/cpanel'||path==='/cpanel/'||path==='/cpanel/index.html'){
+    const returnTo=path.startsWith('/admin')?'%2Fadmin':'%2Fcpanel';
+    if(!identity(request))return Response.redirect(url.origin+'/signin-with-chatgpt?return_to='+returnTo,302);admin(request);return new Response(STATIC_ASSETS['admin.html'].body,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Frame-Options':'SAMEORIGIN'}});
   }
   if(path==='/preview'){admin(request);const state=await snapshot(env);return new Response(pageHtml(state.draft.content),{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':'noindex','X-Frame-Options':'SAMEORIGIN'}})}
   if(path==='/ANDREIKO-Agency.zip')return await downloadZip(env);
