@@ -150,10 +150,10 @@
 .faq-list{display:flex;flex-direction:column;width:min(100%,calc(1280 * var(--faq-unit)));margin-left:auto}
 .faq-item{border-top:1px solid rgba(222,217,205,.28)}
 .faq-item:last-child{border-bottom:1px solid rgba(222,217,205,.28)}
-.faq-trigger{width:100%;display:flex;align-items:flex-start;justify-content:flex-end;gap:calc(24 * var(--faq-unit));padding:calc(28 * var(--faq-unit)) 0;text-align:right;color:inherit;cursor:pointer}
+.faq-trigger{width:100%;display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:flex-end;gap:calc(20 * var(--faq-unit));padding:calc(28 * var(--faq-unit)) 0;text-align:right;color:inherit;cursor:pointer}
 .faq-trigger:hover,.faq-trigger:hover .faq-icon{color:var(--accent)}
-.faq-question{margin:0;flex:1 1 auto;font:600 calc(28 * var(--faq-unit))/1.15 Sonko,Arial,sans-serif;text-transform:uppercase;text-box-trim:trim-both;text-box-edge:cap alphabetic}
-.faq-icon{flex:none;font:600 calc(28 * var(--faq-unit))/1 Aldrich,Benzin,Sonko,Arial,sans-serif;color:var(--accent);min-width:3ch;text-align:right}
+.faq-question{margin:0;flex:1 1 auto;min-width:0;font:600 calc(28 * var(--faq-unit))/1.15 Sonko,Arial,sans-serif;text-transform:uppercase;text-box-trim:trim-both;text-box-edge:cap alphabetic}
+.faq-icon{flex:none;align-self:center;font:300 calc(22 * var(--faq-unit))/1 Aldrich,Benzin,Sonko,Arial,sans-serif;font-weight:300;color:var(--accent);min-width:2.5ch;text-align:right;letter-spacing:0.02em}
 .faq-icon-close{display:none}
 .faq-item.is-open .faq-icon-open{display:none}
 .faq-item.is-open .faq-icon-close{display:inline}
@@ -165,9 +165,9 @@
 .faq-header{margin-bottom:36px}
 .faq-title{font-size:clamp(48px,16vw,72px)}
 .faq-list{width:100%}
-.faq-trigger{gap:14px;padding:22px 0}
+.faq-trigger{gap:12px;padding:22px 0;align-items:center}
 .faq-question{font-size:clamp(16px,4.4vw,20px);line-height:1.25}
-.faq-icon{font-size:20px}
+.faq-icon{font-size:16px;font-weight:300}
 .faq-answer{font-size:15px;line-height:1.4;padding-right:0;margin-bottom:22px}
 }
 @media(prefers-reduced-motion:reduce){.faq-panel{transition:none}}
