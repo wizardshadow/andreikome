@@ -1,0 +1,14 @@
+DirectoryIndex index.html
+Options -Indexes
+
+# Admin panel at /cpanel on static Apache (mchost)
+RewriteEngine On
+RewriteRule ^cpanel$ /cpanel/ [R=301,L]
+
+# PHP CMS API for mchost. Skip existing files so index.php/preview.php stay reachable.
+# Cloudflare Worker serves /api/admin/* natively without these rules.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^api/admin(?:/(.*))?$ /api/admin/index.php [QSA,L]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^preview/?$ /api/admin/preview.php [QSA,L]

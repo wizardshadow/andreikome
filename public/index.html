@@ -1,7 +1,28 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#000000"><meta name="description" content="ANDREIKO — стратегии, брендинг, сайты и маркетинг. Только ручная работа. Без шаблонов."><title>ANDREIKO — Agency</title><script>document.documentElement.classList.add('loading','slide-pending');window._loaderFallback=setTimeout(()=>document.documentElement.classList.remove('loading','slide-pending'),12000)</script><link rel="stylesheet" href="style.css"></head>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#000000"><meta name="description" content="ANDREIKO — стратегии, брендинг, сайты и маркетинг. Только ручная работа. Без шаблонов."><title>ANDREIKO — Agency</title><script>document.documentElement.classList.add('loading','slide-pending');window._loaderFallback=setTimeout(()=>document.documentElement.classList.remove('loading','slide-pending'),20000)</script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aldrich&family=IBM+Plex+Mono:wght@500&display=swap"><link rel="stylesheet" href="style.css"></head>
 <body>
-<div class="preloader" role="status" aria-live="polite" aria-label="Загрузка сайта"><span class="preloader-brand">ANDREIKO</span><span class="preloader-track" aria-hidden="true"><span></span></span><span class="preloader-label">Загрузка</span></div>
+<div class="preloader" role="status" aria-live="polite" aria-label="Загрузка сайта" data-phase="loading">
+  <div class="preloader-container">
+    <div class="preloader-items-wrap" style="--count:12" aria-hidden="true">
+      <ul class="preloader-items">
+        <li class="preloader-item">// Инициализация интерфейса...</li>
+        <li class="preloader-item">// Загрузка базы данных...</li>
+        <li class="preloader-item">// Синхронизация репозитория...</li>
+        <li class="preloader-item">// Мы точно ваш лучший вариант...</li>
+        <li class="preloader-item">// Закажите у нас сайт...</li>
+        <li class="preloader-item">// Во имя великой конверсии...</li>
+        <li class="preloader-item">// Инициализация интерфейса...</li>
+        <li class="preloader-item">// Загрузка базы данных...</li>
+        <li class="preloader-item">// Синхронизация репозитория...</li>
+        <li class="preloader-item">// Мы точно ваш лучший вариант...</li>
+        <li class="preloader-item">// Закажите у нас сайт...</li>
+        <li class="preloader-item">// Во имя великой конверсии...</li>
+      </ul>
+    </div>
+    <div class="preloader-progress">( 0% )</div>
+    <p class="preloader-text">// Мы сделали крутой сайт чтобы вы не заскучали от текстов и картинок, скоро всё загрузится...</p>
+  </div>
+</div>
 <main class="hero">
   <div class="stage" aria-hidden="true"><img class="project" id="project" src="assets/work1.png" alt=""></div>
   <header class="brand"><h1 class="fx">ANDREIKO</h1><p class="fx">AGENCY</p></header>
@@ -107,9 +128,54 @@
   </article>
   <button class="works-all" type="button"><span class="fx">смотреть все кейсы</span><span class="fx" aria-hidden="true">[ &gt; ]</span></button>
 </section>
+
+<section class="process" id="process" aria-labelledby="process-title">
+  <div class="process-bg" aria-hidden="true"><img src="assets/process/bg.jpg" alt=""></div>
+  <header class="process-header">
+    <h2 class="process-label" id="process-title" data-process-step><img src="assets/process/mark.svg" width="9" height="9" alt=""><span class="fx">как мы работаем?</span></h2>
+    <p class="process-headline" data-process-step><span class="fx process-accent">отточенный процесс</span><span class="fx">идеальный результат</span></p>
+  </header>
+  <div class="process-rail" data-process-step>
+    <div class="process-track" tabindex="0" role="list" aria-label="Этапы процесса">
+      <article class="process-card" role="listitem" data-step="0">
+        <div class="process-card-face process-card-base">
+          <p class="process-index">[01]</p>
+          <div class="process-card-body">
+            <h3 class="process-card-title">обсуждение</h3>
+            <p class="process-card-copy">Мы говорим о вашем продукте. Не о результатах работы и не о сроках — о самом продукте: что он делает, для кого предназначен и почему вы его создали.</p>
+            <span class="process-card-days">2 часа</span>
+          </div>
+        </div>
+        <div class="process-card-face process-card-hover" aria-hidden="true"></div>
+      </article>
+    </div>
+  </div>
+  <div class="process-summary" data-process-step>
+    <p class="process-summary-term fx">средний срок: 1 месяц</p>
+    <p class="process-summary-cost fx">средняя стоимость: от 100 000₽</p>
+  </div>
+</section>
+
+<section class="faq" id="faq" aria-labelledby="faq-title">
+  <header class="faq-header">
+    <h2 class="faq-title fx" id="faq-title">FAQ</h2>
+  </header>
+  <div class="faq-list" role="list">
+    <div class="faq-item" role="listitem">
+      <button type="button" class="faq-trigger" aria-expanded="false">
+        <span class="faq-question fx">У меня уже есть сайт — это для меня?</span>
+        <span class="faq-icon" aria-hidden="true"><span class="faq-icon-open">[+]</span><span class="faq-icon-close">[-]</span></span>
+      </button>
+      <div class="faq-panel" hidden>
+        <p class="faq-answer">Да. Мы пересобираем существующие сайты и лендинги: усиливаем смысл, структуру и визуал, не ломая то, что уже работает на бизнес.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <dialog class="works-dialog" id="works-dialog" aria-labelledby="works-dialog-title"><button type="button" class="close fx" aria-label="Закрыть кейс">Закрыть [ × ]</button><div class="works-detail-body"></div></dialog>
 
 <canvas id="grain" aria-hidden="true"></canvas>
 <dialog id="panel"><button class="close fx" aria-label="Закрыть">Закрыть [ × ]</button><div class="panel-content"><p class="eyebrow fx">ANDREIKO / AGENCY</p><h2></h2><p class="panel-copy"></p><a class="contact-link fx" href="https://t.me/arturandreiko" target="_blank" rel="noopener">Написать в Telegram ↗</a></div></dialog>
 <dialog id="viewer"><button class="close fx" aria-label="Закрыть проект">Закрыть [ × ]</button><img alt="Выбранный проект"></dialog>
-<script src="content-defaults.js"></script><!-- cms-content --><script src="content.js"></script><script src="app.js"></script><script src="works.js"></script></body></html>
+<script src="content-defaults.js"></script><!-- cms-content --><script src="content.js"></script><script src="app.js"></script><script src="works.js"></script><script src="process.js"></script><script src="faq.js"></script></body></html>
