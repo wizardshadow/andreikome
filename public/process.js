@@ -1,6 +1,6 @@
 (() => {
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // Key off pointer quality, not hover media — headless Chrome reports hover:none.
+  // Key off pointer quality — headless Chrome reports hover:none.
   const coarse=matchMedia('(pointer: coarse)').matches;
   const section=document.querySelector('#process');
   if(!section)return;
@@ -8,44 +8,81 @@
   const track=section.querySelector('.process-track');
   const cards=[...section.querySelectorAll('.process-card')];
   const SLICES=8;
+  const TEXT_SEL='.process-card-base .process-index,.process-card-base .process-card-title,.process-card-base .process-card-copy,.process-card-base .process-card-days';
+
+  let x=0,vx=0,dragging=false,lastX=0,lastT=0,raf=0,moved=0;
+  let pressCard=null,tapped=null,wheelTimer=0;
 
   function maxOffset(){
     return Math.max(0,track.scrollWidth-rail.clientWidth);
   }
-  let x=0,vx=0,dragging=false,lastX=0,lastT=0,raf=0,moved=0,activeIndex=0;
-  let pressCard=null,tapped=null;
-
-  function apply(){
+  function stride(){
+    if(!cards.length)return 1;
+    const gap=parseFloat(getComputedStyle(track).columnGap||getComputedStyle(track).gap)||0;
+    return Math.max(1,cards[0].offsetWidth+gap);
+  }
+  function nearestSnap(){
     const max=maxOffset();
-    x=Math.min(0,Math.max(-max,x));
-    track.style.transform=`translate3d(${x}px,0,0)`;
-    syncActive();
-  }
-  function kinetic(){
-    if(dragging)return;
-    x+=vx;
-    vx*=.92;
-    apply();
-    if(Math.abs(vx)>0.08)raf=requestAnimationFrame(kinetic);
-    else{vx=0;raf=0;syncActive()}
-  }
-  function syncActive(){
-    const railBox=rail.getBoundingClientRect();
-    const center=railBox.left+railBox.width/2;
+    const s=stride();
     let best=0,bestDist=Infinity;
-    cards.forEach((card,i)=>{
-      const box=card.getBoundingClientRect();
-      const mid=box.left+box.width/2;
-      const dist=Math.abs(mid-center);
-      if(dist<bestDist){bestDist=dist;best=i}
-    });
-    activeIndex=best;
-    cards.forEach((card,i)=>card.classList.toggle('is-active',i===best));
+    const candidates=new Set([0,-max]);
+    for(let i=0;i<cards.length;i++)candidates.add(Math.max(-max,Math.min(0,-i*s)));
+    for(const candidate of candidates){
+      const dist=Math.abs(candidate-x);
+      if(dist<bestDist){bestDist=dist;best=candidate}
+    }
+    return best;
   }
+  function rubber(value){
+    const max=maxOffset();
+    if(value>0)return value*0.32;
+    if(value<-max)return -max+(value+max)*0.32;
+    return value;
+  }
+  function applyTransform(){
+    track.style.transform=`translate3d(${x}px,0,0)`;
+  }
+  function stopRaf(){
+    if(raf){cancelAnimationFrame(raf);raf=0}
+  }
+  function tick(){
+    if(dragging){raf=0;return}
+    const max=maxOffset();
+    const target=nearestSnap();
+    if(Math.abs(vx)>0.45){
+      x+=vx;
+      vx*=0.945;
+      // Soft magnetic pull toward snap while coasting.
+      x+=(target-x)*0.04;
+      if(x>0){x*=0.55;vx*=0.55}
+      else if(x<-max){x+=(-max-x)*0.4;vx*=0.55}
+    }else{
+      vx*=0.72;
+      const dx=target-x;
+      if(Math.abs(dx)<0.35&&Math.abs(vx)<0.04){
+        x=target;vx=0;applyTransform();raf=0;return;
+      }
+      // Smooth settle into snap — no hard stop.
+      x+=dx*0.18;
+    }
+    applyTransform();
+    raf=requestAnimationFrame(tick);
+  }
+  function startSettle(){
+    if(reduced){
+      x=nearestSnap();
+      vx=0;
+      applyTransform();
+      return;
+    }
+    stopRaf();
+    raf=requestAnimationFrame(tick);
+  }
+
   function onPointerDown(event){
     if(event.button!=null&&event.button!==0)return;
     dragging=true;moved=0;rail.classList.add('is-dragging');
-    vx=0;if(raf){cancelAnimationFrame(raf);raf=0}
+    vx=0;stopRaf();
     lastX=event.clientX;lastT=performance.now();
     pressCard=event.target.closest?.('.process-card')||null;
     rail.setPointerCapture?.(event.pointerId);
@@ -56,16 +93,15 @@
     const dx=event.clientX-lastX;
     const dt=Math.max(1,now-lastT);
     moved+=Math.abs(dx);
-    x+=dx;
+    x=rubber(x+dx);
     vx=dx/dt*16;
     lastX=event.clientX;lastT=now;
-    apply();
+    applyTransform();
   }
   function onPointerUp(event){
     if(!dragging)return;
     dragging=false;rail.classList.remove('is-dragging');
     try{rail.releasePointerCapture?.(event.pointerId)}catch{}
-    // Coarse pointer: tap toggles ClipHover (rail capture steals card pointerup).
     if(coarse&&moved<=8&&pressCard){
       const turnOn=tapped!==pressCard;
       if(tapped&&tapped!==pressCard)setHover(tapped,false);
@@ -73,8 +109,8 @@
       setHover(pressCard,turnOn);
     }
     pressCard=null;
-    if(!reduced&&Math.abs(vx)>0.4)raf=requestAnimationFrame(kinetic);
-    else{vx=0;syncActive()}
+    // Always settle smoothly (inertia + snap), never hard-stop.
+    startSettle();
   }
   rail.addEventListener('pointerdown',onPointerDown);
   rail.addEventListener('pointermove',onPointerMove);
@@ -84,12 +120,19 @@
   rail.addEventListener('wheel',event=>{
     if(Math.abs(event.deltaX)<Math.abs(event.deltaY)&&!event.shiftKey)return;
     event.preventDefault();
-    x-=event.deltaX||event.deltaY;
-    vx=0;apply();
+    stopRaf();
+    x=rubber(x-(event.deltaX||event.deltaY));
+    vx=0;
+    applyTransform();
+    clearTimeout(wheelTimer);
+    wheelTimer=setTimeout(startSettle,90);
   },{passive:false});
-  window.addEventListener('resize',()=>apply(),{passive:true});
+  window.addEventListener('resize',()=>{
+    x=Math.min(0,Math.max(-maxOffset(),x));
+    applyTransform();
+    startSettle();
+  },{passive:true});
 
-  // ClipHover slices sit under the base content; they never hide card copy by default.
   function buildSlices(card){
     const hover=card.querySelector('.process-card-hover');
     if(!hover||hover.dataset.slicesReady)return hover;
@@ -127,7 +170,7 @@
       });
     }
     if(on&&!reduced&&typeof reveal==='function'){
-      card.querySelectorAll('.process-card-base .process-card-title,.process-card-base .process-index,.process-card-base .process-card-days').forEach(el=>{
+      card.querySelectorAll(TEXT_SEL).forEach(el=>{
         el.dataset.ready='';
         reveal(el,0,220);
       });
@@ -148,7 +191,7 @@
     tapped=null;
   });
 
-  syncActive();
+  applyTransform();
 
   function intro(){
     const steps=[...section.querySelectorAll('[data-process-step]')];
@@ -175,7 +218,6 @@
           if(!reduced)await railStep.animate([{opacity:0,transform:'translate3d(40px,0,0)'},{opacity:1,transform:'translate3d(0,0,0)'}],{duration:700,easing:'ease-out'}).finished.catch(()=>{});
         }
         if(summary)await revealLayer(summary,other);
-        syncActive();
       }finally{section.classList.remove('is-pending')}
     },{threshold:0,rootMargin:'0px 0px -12% 0px'});
     observer.observe(section);
