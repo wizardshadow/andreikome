@@ -8,7 +8,36 @@
   const date=value=>value?new Intl.DateTimeFormat('ru-RU',{dateStyle:'medium',timeStyle:'short',timeZone:'Europe/Moscow'}).format(new Date(value)):'ещё не опубликован';
   function state(){ $('#save-state').textContent=busy?'Сохраняю…':dirty?'Есть несохранённые изменения':revision?'Черновик сохранён':'Контент загружен';$('#published-state').textContent='Последняя публикация: '+date(published?.createdAt);for(const id of ['save','publish','preview','import'])$('#'+id).disabled=busy||!config; }
   function changed(){dirty=true;notice('');state()}
-  async function api(path,options={}){const response=await fetch('/api/admin/'+path,{...options,headers:{...(options.body&&typeof options.body==='string'?{'Content-Type':'application/json'}:{}),...options.headers}});const data=await response.json();if(!response.ok)throw new Error(data.error||'Не удалось выполнить запрос');return data}
+  let cmsApi='auto';
+  function apiUrl(path){
+    if(cmsApi==='php')return '/api/admin/index.php?path='+encodeURIComponent(path);
+    return '/api/admin/'+path;
+  }
+  async function api(path,options={}){
+    const headers={...(options.body&&typeof options.body==='string'?{'Content-Type':'application/json'}:{}),...options.headers};
+    const exec=async url=>{
+      const response=await fetch(url,{credentials:'same-origin',...options,headers});
+      const text=await response.text();
+      return {response,text};
+    };
+    let {response,text}=await exec(apiUrl(path));
+    // mchost nginx HTML 404 → retry through PHP front controller.
+    if(cmsApi!=='php'&&text.trimStart().startsWith('<')){
+      cmsApi='php';
+      ({response,text}=await exec(apiUrl(path)));
+    }else if(cmsApi==='auto')cmsApi='worker';
+    let data=null;
+    if(text){
+      try{data=JSON.parse(text)}
+      catch{
+        throw new Error(response.ok
+          ? 'Сервер вернул некорректный JSON'
+          : 'API админки недоступно (HTTP '+response.status+'). На статическом хостинге нужен PHP CMS.');
+      }
+    }
+    if(!response.ok)throw new Error((data&&data.error)||('Не удалось выполнить запрос (HTTP '+response.status+')'));
+    return data||{};
+  }
   function apply(data){config=structuredClone(data.draft.content);revision=data.draft.revision;published=data.published;dirty=false;state()}
   async function save(){if(busy)return false;busy=true;state();try{const data=await api('content',{method:'PUT',body:JSON.stringify({content:config,baseRevision:revision})});apply(data);notice('Черновик сохранён. Посетители увидят изменения после публикации.');return true}catch(error){notice(error.message,true);return false}finally{busy=false;state()}}
   async function publish(){if(dirty||!revision){if(!await save())return}busy=true;state();try{published=await api('publish',{method:'POST',body:JSON.stringify({revision})});notice('Изменения опубликованы. Обновите сайт, чтобы увидеть новую версию.')}catch(error){notice(error.message,true)}finally{busy=false;state()}}
@@ -79,10 +108,59 @@
   async function history(){intro('Восстановление переносит выбранную версию в черновик. Чтобы показать её посетителям, нажмите «Опубликовать».');const data=await api('history');if(tab!=='history')return;const s=section('Опубликованные версии');if(!data.items.length){s.panel.append(create('p','muted','Публикаций через админку пока нет.'));return}for(const item of data.items){const row=create('div','history-row'),description=create('div');description.append(create('strong','',date(item.createdAt)),create('small','',item.revision===published?.revision?'Текущая публикация':'Сохранённая версия'));const button=create('button','secondary','Восстановить в черновик');button.onclick=async()=>{if(!confirm('Восстановить эту версию в черновик? Несохранённые изменения будут заменены.'))return;try{apply(await api('restore',{method:'POST',body:JSON.stringify({revision:item.revision,baseRevision:revision})}));notice('Версия восстановлена в черновик. Проверьте её в предпросмотре.');await render()}catch(error){notice(error.message,true)}};row.append(description,button);s.panel.append(row)}}
   async function render(){if(!config)return;$('#page-title').textContent=titles[tab];document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('selected',b.dataset.tab===tab));$('#content').replaceChildren();try{await({home,slides,principles,process,faq,works,contacts,effects,media,history}[tab])()}catch(error){notice(error.message,true)}}
   document.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{tab=button.dataset.tab;render()});$('#save').onclick=save;$('#publish').onclick=publish;
-  const signout=$('#signout-link');if(signout)signout.href='/signout-with-chatgpt?return_to='+returnTo;
-  $('#preview').onclick=async()=>{if(dirty||!revision){if(!await save())return}const dialog=$('#preview-dialog');dialog.querySelector('iframe').src='/preview?t='+Date.now();dialog.showModal()};$('#close-preview').onclick=()=>$('#preview-dialog').close();$('#preview-dialog').addEventListener('close',()=>$('#preview-dialog iframe').src='about:blank');
+  let authMode='chatgpt';
+  const signout=$('#signout-link');
+  if(signout){
+    signout.href='/signout-with-chatgpt?return_to='+returnTo;
+    signout.addEventListener('click',async event=>{
+      if(authMode!=='password')return;
+      event.preventDefault();
+      try{await api('logout',{method:'POST',body:'{}'})}catch{}
+      location.reload();
+    });
+  }
+  function showLogin(message){
+    notice(message||'Войдите, чтобы редактировать сайт.',true);
+    $('#content').replaceChildren();
+    const form=create('form','login-form');
+    form.append(create('p','intro-copy','На этом хостинге вход по паролю владельца. ChatGPT OAuth работает только на Cloudflare Worker.'));
+    const label=create('label','field');label.append(create('span','','Пароль админки'));
+    const input=create('input');input.type='password';input.name='password';input.autocomplete='current-password';input.required=true;label.append(input);
+    const button=create('button','primary','Войти');button.type='submit';
+    form.append(label,button);
+    form.onsubmit=async event=>{
+      event.preventDefault();
+      busy=true;state();
+      try{
+        const session=await api('login',{method:'POST',body:JSON.stringify({password:input.value})});
+        authMode='password';
+        $('#account').textContent=session.user.email;
+        if(signout)signout.textContent='Выйти';
+        apply(await api('content'));
+        notice('');
+        await render();
+      }catch(error){notice(error.message,true)}
+      finally{busy=false;state()}
+    };
+    const chatgpt=create('a','notice-link','Войти через ChatGPT');chatgpt.href='/signin-with-chatgpt?return_to='+returnTo;chatgpt.target='_top';
+    $('#content').append(form,create('p','muted','или'),chatgpt);
+    state();
+  }
+  function previewSrc(){return (cmsApi==='php'?'/api/admin/preview.php':'/preview')+'?t='+Date.now()}
+  $('#preview').onclick=async()=>{if(dirty||!revision){if(!await save())return}const dialog=$('#preview-dialog');dialog.querySelector('iframe').src=previewSrc();dialog.showModal()};$('#close-preview').onclick=()=>$('#preview-dialog').close();$('#preview-dialog').addEventListener('close',()=>$('#preview-dialog iframe').src='about:blank');
   $('#export').onclick=()=>{if(!config)return;const url=URL.createObjectURL(new Blob([JSON.stringify(config,null,2)],{type:'application/json'})),link=create('a');link.href=url;link.download='andreiko-content.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
   $('#import').onclick=()=>$('#import-file').click();$('#import-file').onchange=async()=>{const file=$('#import-file').files[0];if(!file)return;if(dirty&&!confirm('Импорт заменит несохранённый черновик. Продолжить?'))return;busy=true;state();try{const content=JSON.parse(await file.text());apply(await api('content',{method:'PUT',body:JSON.stringify({content:content.content||content,baseRevision:revision})}));await render();notice('Контент импортирован в черновик. Проверьте его перед публикацией.')}catch(error){notice(error.message,true)}finally{busy=false;state();$('#import-file').value=''}};
   window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue=''}});document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){event.preventDefault();save()}});
-  (async()=>{try{const session=await api('session');$('#account').textContent=session.user.email;apply(await api('content'));await render()}catch(error){notice(error.message,true);$('#content').replaceChildren();const link=create('a','notice-link','Войти через ChatGPT');link.href='/signin-with-chatgpt?return_to='+returnTo;link.target='_top';$('#content').append(link);state()}})();
+  (async()=>{
+    try{
+      const session=await api('session');
+      authMode=session.auth==='password'?'password':'chatgpt';
+      $('#account').textContent=session.user.email;
+      if(authMode==='password'&&signout)signout.textContent='Выйти';
+      apply(await api('content'));
+      await render();
+    }catch(error){
+      showLogin(error.message);
+    }
+  })();
 })();
