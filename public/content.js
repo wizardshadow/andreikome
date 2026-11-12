@@ -47,6 +47,29 @@
     }
     processSection.hidden=!c.visibility.process;
   }
+  const faqSection=q('#faq');
+  if(faqSection&&c.faq){
+    text('.faq-title',c.faq.title);
+    const itemTemplate=q('.faq-item');
+    if(itemTemplate&&Array.isArray(c.faq.items)){
+      const list=q('.faq-list');
+      list.replaceChildren();
+      c.faq.items.forEach((item,index)=>{
+        const row=itemTemplate.cloneNode(true);
+        row.dataset.faqIndex=index;
+        text(row.querySelector('.faq-question'),item.question);
+        text(row.querySelector('.faq-answer'),item.answer);
+        const trigger=row.querySelector('.faq-trigger');
+        if(trigger){
+          trigger.setAttribute('aria-expanded','false');
+          const panel=row.querySelector('.faq-panel');
+          if(panel){panel.id='faq-panel-'+index;trigger.setAttribute('aria-controls',panel.id)}
+        }
+        list.append(row);
+      });
+    }
+    faqSection.hidden=!c.visibility.faq;
+  }
   q('#principles').hidden=!c.visibility.principles;workList.hidden=!c.visibility.works;
   window.SITE_PANELS=panels;
 })();

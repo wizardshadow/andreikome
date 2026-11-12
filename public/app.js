@@ -31,11 +31,12 @@ function prepare(el){
 function settleReveal(el){
   if(!el)return;
   if(el._timer){clearInterval(el._timer);el._timer=null}
-  prepare(el);
-  el.querySelectorAll('.letter').forEach(span=>{
-    const glyph=span.firstElementChild;if(!glyph)return;
-    glyph.textContent=span.dataset.char||'';span.classList.remove('flash');
-  });
+  const original=originalText(el);
+  el.dataset.original=original;
+  el.setAttribute('aria-label',original);
+  // Restore plain text so letter spans never leave layout offset after hover.
+  el.textContent=original;
+  el.dataset.ready='';
   const done=el._finishReveal;el._finishReveal=null;done?.();
 }
 function reveal(el,delay=0,duration=null){
