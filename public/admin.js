@@ -101,8 +101,10 @@
     });
   }
   function cases(){
-    if(!config.cases)config.cases={title:'Кейсы',lead:'',items:[]};
+    if(!config.cases||typeof config.cases!=='object')config.cases={title:'Кейсы',lead:'',items:[]};
     if(!Array.isArray(config.cases.items))config.cases.items=[];
+    if(!config.cases.title)config.cases.title='Кейсы';
+    if(typeof config.cases.lead!=='string')config.cases.lead='';
     if(!config.visibility)config.visibility={};
     if(typeof config.visibility.cases!=='boolean')config.visibility.cases=true;
     if(!config.hero.casesLabel)config.hero.casesLabel='Кейсы';

@@ -168,16 +168,38 @@ function require_same_origin(): void {
   if (!hash_equals($expected, $origin)) fail('Недопустимый источник запроса', 403);
 }
 
+function fill_defaults($value, $template) {
+  if (is_array($template) && array_is_list($template)) {
+    return is_array($value) && array_is_list($value) ? $value : $template;
+  }
+  if (is_array($template)) {
+    if (!is_array($value) || array_is_list($value)) $value = [];
+    $out = [];
+    foreach ($template as $key => $child) {
+      $out[$key] = array_key_exists($key, $value) ? fill_defaults($value[$key], $child) : $child;
+    }
+    return $out;
+  }
+  return $value === null ? $template : $value;
+}
+
 function published_record(): array {
   $data = read_json_file(CMS_ROOT . '/published.json');
-  if ($data && isset($data['content']) && is_array($data['content'])) return $data;
-  return ['revision' => null, 'createdAt' => null, 'content' => defaults_content()];
+  $defaults = defaults_content();
+  if ($data && isset($data['content']) && is_array($data['content'])) {
+    $data['content'] = fill_defaults($data['content'], $defaults);
+    return $data;
+  }
+  return ['revision' => null, 'createdAt' => null, 'content' => $defaults];
 }
 
 function draft_record(): array {
   $live = published_record();
   $draft = read_json_file(CMS_ROOT . '/draft.json');
-  if ($draft && isset($draft['content']) && is_array($draft['content'])) return $draft;
+  if ($draft && isset($draft['content']) && is_array($draft['content'])) {
+    $draft['content'] = fill_defaults($draft['content'], defaults_content());
+    return $draft;
+  }
   return ['revision' => null, 'createdAt' => null, 'content' => $live['content']];
 }
 

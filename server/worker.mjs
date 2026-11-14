@@ -32,8 +32,17 @@ function admin(request){const user=identity(request);if(!user)failure('Войд�
 function sameOrigin(request){if(request.headers.get('Origin')!==new URL(request.url).origin)failure('Недопустимый источник запроса',403)}
 function bucket(env){if(!env.BUCKET)failure('Хранилище контента не подключено',503);return env.BUCKET}
 async function readRecord(store,key){const obj=await store.get(key);return obj?{object:obj,data:await obj.json()}:null}
-async function published(env){const value=env.BUCKET?await readRecord(env.BUCKET,'cms/published.json'):null;return value?.data||{revision:null,createdAt:null,content:DEFAULT_CONTENT}}
-async function snapshot(env){const store=bucket(env),live=await published(env),draft=await readRecord(store,'cms/draft.json');return{draft:draft?.data||{revision:null,createdAt:null,content:live.content},published:{revision:live.revision,createdAt:live.createdAt}}}
+function fillDefaults(value,template){
+  if(Array.isArray(template))return Array.isArray(value)?value:template.map(v=>structuredClone(v));
+  if(template&&typeof template==='object'){
+    if(!value||typeof value!=='object'||Array.isArray(value))value={};
+    const out={};for(const key of Object.keys(template))out[key]=key in value?fillDefaults(value[key],template[key]):structuredClone(template[key]);
+    return out;
+  }
+  return value??structuredClone(template);
+}
+async function published(env){const value=env.BUCKET?await readRecord(env.BUCKET,'cms/published.json'):null;const base=value?.data||{revision:null,createdAt:null,content:DEFAULT_CONTENT};return{...base,content:fillDefaults(base.content,DEFAULT_CONTENT)}}
+async function snapshot(env){const store=bucket(env),live=await published(env),draft=await readRecord(store,'cms/draft.json');const draftData=draft?.data||{revision:null,createdAt:null,content:live.content};return{draft:{...draftData,content:fillDefaults(draftData.content,DEFAULT_CONTENT)},published:{revision:live.revision,createdAt:live.createdAt}}}
 async function saveDraft(store,content,baseRevision,user){const previous=await readRecord(store,'cms/draft.json');if((previous?.data.revision||null)!==(baseRevision||null))failure('Черновик изменён в другой вкладке. Обновите страницу перед сохранением.',409);const draft={revision:crypto.randomUUID(),createdAt:new Date().toISOString(),actor:user.id,content:validateContent(content)};const result=await store.put('cms/draft.json',JSON.stringify(draft),{httpMetadata:{contentType:'application/json'},onlyIf:previous?{etagMatches:previous.object.etag}:{etagDoesNotMatch:'*'}});if(!result)failure('Черновик изменён параллельно. Обновите страницу.',409);return draft}
 function safeJson(value){return JSON.stringify(value).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')}
 function pageHtml(content){return STATIC_ASSETS['index.html'].body.replace('<!-- cms-content -->','<script>window.SITE_CONTENT='+safeJson(content)+'</script>')}
