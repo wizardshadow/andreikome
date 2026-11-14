@@ -8,8 +8,7 @@
     "principles": true,
     "works": true,
     "process": true,
-    "faq": true,
-    "cases": true
+    "faq": true
   },
   "hero": {
     "brand": "ANDREIKO",
@@ -128,8 +127,7 @@
         "label": "E-mail",
         "url": ""
       }
-    ],
-    "casesLabel": "Кейсы"
+    ]
   },
   "principles": {
     "label": "Принципы",
@@ -305,68 +303,5 @@
     "videoDim": 50,
     "grainOpacity": 0.0595,
     "cursor": "assets/cursor.svg?v=2"
-  },
-  "cases": {
-    "title": "Кейсы",
-    "lead": "Мы делаем сайты и брендинг для основателей, которые любят свой продукт. Вот проекты, которыми гордимся.",
-    "items": [
-      {
-        "id": "case-infinity",
-        "slug": "infinity-frameworks",
-        "title": "Infinity Frameworks",
-        "cover": "assets/case/cover-hero.png",
-        "previewBg": "#101010",
-        "videoPreview": "assets/works/demo.mp4",
-        "category": "WEB",
-        "client": "Filming Company",
-        "description": "Главная цель проекта — привлечь потенциальных клиентов бизнес-класса, продемонстрировав портфолио компании, её проекты и визуальный стиль сайта.",
-        "gallery": [
-          "assets/works/infinity-frameworks.jpg",
-          "assets/work3.png",
-          "assets/work1.png",
-          "assets/case/idea-photo.png"
-        ],
-        "showOnHome": true,
-        "showInBlock": true
-      },
-      {
-        "id": "case-render",
-        "slug": "render-courses",
-        "title": "Render Courses",
-        "cover": "assets/works/render-courses.jpg",
-        "previewBg": "#141414",
-        "videoPreview": "assets/works/demo.mp4",
-        "category": "WEB",
-        "client": "3D Artist Online School",
-        "description": "Светлый минималистичный дизайн с акцентом на визуализации и преимуществах клуба.",
-        "gallery": [
-          "assets/works/render-courses.jpg",
-          "assets/work4.png",
-          "assets/work5.png",
-          "assets/work6.png"
-        ],
-        "showOnHome": true,
-        "showInBlock": true
-      },
-      {
-        "id": "case-river",
-        "slug": "river-black",
-        "title": "River Black",
-        "cover": "assets/works/river-black.jpg",
-        "previewBg": "#0c0c0c",
-        "videoPreview": "assets/works/demo.mp4",
-        "category": "BRAND",
-        "client": "Rendering Company",
-        "description": "Ничего лишнего — только работа клиента и интерфейс. Акцент на простоте и минимализме.",
-        "gallery": [
-          "assets/works/river-black.jpg",
-          "assets/work5.png",
-          "assets/work2.png",
-          "assets/work6.png"
-        ],
-        "showOnHome": false,
-        "showInBlock": true
-      }
-    ]
   }
 }

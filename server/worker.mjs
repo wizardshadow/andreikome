@@ -4,15 +4,15 @@ const failure=(message,status=400)=>{throw Object.assign(new Error(message),{sta
 const cleanPath=pathname=>decodeURIComponent(pathname).replace(/^\//,'');
 function allowedUrl(value){if(!value)return true;if(/[\x00-\x20<>"'\\]/.test(value)||value.startsWith('//'))return false;try{const u=new URL(value,'https://local.invalid');if(u.protocol==='https:')return !decodeURIComponent(u.pathname).split('/').includes('..');return u.protocol==='mailto:'||u.protocol==='tel:'}catch{return false}}
 function validateContent(input){
-  const maxArrays={services:12,navigation:8,slides:20,socials:12,directions:8,items:30,steps:12,gallery:40};
+  const maxArrays={services:12,navigation:8,slides:20,socials:12,directions:8,items:30,steps:12};
   function visit(value,template,path){
     if(Array.isArray(template)){if(!Array.isArray(value)||value.length>(maxArrays[path.split('.').at(-1)]||30))failure('Некорректный список: '+path);return value.map((v,i)=>visit(v,template[0],path+'.'+i))}
     if(template&&typeof template==='object'){if(!value||typeof value!=='object'||Array.isArray(value))failure('Некорректный раздел: '+path);const result={};for(const key of Object.keys(template)){if(!(key in value)){result[key]=visit(template[key],template[key],path?path+'.'+key:key);continue}result[key]=visit(value[key],template[key],path?path+'.'+key:key)}return result}
     if(typeof value!==typeof template)failure('Некорректный тип: '+path);
     if(typeof value==='string'){
       if(value.length>12000)failure('Слишком длинный текст: '+path);
-      if((/\.(image|thumbnail|cardImage|preview|video|portrait|cursor|telegram|caseUrl|url|background|cover|videoPreview)$/.test(path)||/\.gallery\.\d+$/.test(path))&&!allowedUrl(value))failure('Недопустимая ссылка: '+path);
-      if((path==='meta.accent'||/\.previewBg$/.test(path))&&!/^#[0-9a-f]{6}$/i.test(value))failure('Цвет должен иметь формат #RRGGBB');
+      if(/\.(image|thumbnail|cardImage|preview|video|portrait|cursor|telegram|caseUrl|url|background)$/.test(path)&&!allowedUrl(value))failure('Недопустимая ссылка: '+path);
+      if(path==='meta.accent'&&!/^#[0-9a-f]{6}$/i.test(value))failure('Цвет должен иметь формат #RRGGBB');
     }
     if(typeof value==='number'){
       if(!Number.isFinite(value))failure('Некорректное число: '+path);
@@ -32,17 +32,8 @@ function admin(request){const user=identity(request);if(!user)failure('Войд�
 function sameOrigin(request){if(request.headers.get('Origin')!==new URL(request.url).origin)failure('Недопустимый источник запроса',403)}
 function bucket(env){if(!env.BUCKET)failure('Хранилище контента не подключено',503);return env.BUCKET}
 async function readRecord(store,key){const obj=await store.get(key);return obj?{object:obj,data:await obj.json()}:null}
-function fillDefaults(value,template){
-  if(Array.isArray(template))return Array.isArray(value)?value:template.map(v=>structuredClone(v));
-  if(template&&typeof template==='object'){
-    if(!value||typeof value!=='object'||Array.isArray(value))value={};
-    const out={};for(const key of Object.keys(template))out[key]=key in value?fillDefaults(value[key],template[key]):structuredClone(template[key]);
-    return out;
-  }
-  return value??structuredClone(template);
-}
-async function published(env){const value=env.BUCKET?await readRecord(env.BUCKET,'cms/published.json'):null;const base=value?.data||{revision:null,createdAt:null,content:DEFAULT_CONTENT};return{...base,content:fillDefaults(base.content,DEFAULT_CONTENT)}}
-async function snapshot(env){const store=bucket(env),live=await published(env),draft=await readRecord(store,'cms/draft.json');const draftData=draft?.data||{revision:null,createdAt:null,content:live.content};return{draft:{...draftData,content:fillDefaults(draftData.content,DEFAULT_CONTENT)},published:{revision:live.revision,createdAt:live.createdAt}}}
+async function published(env){const value=env.BUCKET?await readRecord(env.BUCKET,'cms/published.json'):null;return value?.data||{revision:null,createdAt:null,content:DEFAULT_CONTENT}}
+async function snapshot(env){const store=bucket(env),live=await published(env),draft=await readRecord(store,'cms/draft.json');return{draft:draft?.data||{revision:null,createdAt:null,content:live.content},published:{revision:live.revision,createdAt:live.createdAt}}}
 async function saveDraft(store,content,baseRevision,user){const previous=await readRecord(store,'cms/draft.json');if((previous?.data.revision||null)!==(baseRevision||null))failure('Черновик изменён в другой вкладке. Обновите страницу перед сохранением.',409);const draft={revision:crypto.randomUUID(),createdAt:new Date().toISOString(),actor:user.id,content:validateContent(content)};const result=await store.put('cms/draft.json',JSON.stringify(draft),{httpMetadata:{contentType:'application/json'},onlyIf:previous?{etagMatches:previous.object.etag}:{etagDoesNotMatch:'*'}});if(!result)failure('Черновик изменён параллельно. Обновите страницу.',409);return draft}
 function safeJson(value){return JSON.stringify(value).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')}
 function pageHtml(content){return STATIC_ASSETS['index.html'].body.replace('<!-- cms-content -->','<script>window.SITE_CONTENT='+safeJson(content)+'</script>')}
