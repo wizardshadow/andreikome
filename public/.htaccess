@@ -12,3 +12,7 @@ RewriteRule ^api/admin(?:/(.*))?$ /api/admin/index.php [QSA,L]
 
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^preview/?$ /api/admin/preview.php [QSA,L]
+
+# Pretty case URLs → case.html?slug=
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^case/([A-Za-z0-9_-]+)/?$ /case.html?slug=$1 [QSA,L]

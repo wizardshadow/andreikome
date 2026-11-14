@@ -3,7 +3,7 @@
   const adminPath=location.pathname.startsWith('/cpanel')?'/cpanel':'/admin';
   const returnTo=encodeURIComponent(adminPath);
   let config=null,revision=null,published=null,dirty=false,busy=false,tab='home';
-  const titles={home:'Главная',slides:'Слайдер',principles:'Принципы',process:'Процесс',faq:'FAQ',works:'Работы',contacts:'Контакты и меню',effects:'Анимации и оформление',media:'Медиафайлы',history:'История публикаций'};
+  const titles={home:'Главная',slides:'Слайдер',principles:'Принципы',cases:'Кейсы',process:'Процесс',faq:'FAQ',works:'Работы',contacts:'Контакты и меню',effects:'Анимации и оформление',media:'Медиафайлы',history:'История публикаций'};
   function notice(message,error=false){const node=$('#notice');node.hidden=!message;node.textContent=message;node.className=error?'error':''}
   const date=value=>value?new Intl.DateTimeFormat('ru-RU',{dateStyle:'medium',timeStyle:'short',timeZone:'Europe/Moscow'}).format(new Date(value)):'ещё не опубликован';
   function state(){ $('#save-state').textContent=busy?'Сохраняю…':dirty?'Есть несохранённые изменения':revision?'Черновик сохранён':'Контент загружен';$('#published-state').textContent='Последняя публикация: '+date(published?.createdAt);for(const id of ['save','publish','preview','import'])$('#'+id).disabled=busy||!config; }
@@ -63,7 +63,7 @@
     if(remove){const b=create('button','small-button danger','Удалить');b.type='button';b.onclick=()=>{if(slide&&items.length===1){notice('В слайдере должен остаться хотя бы один слайд.',true);return}if(!confirm('Удалить «'+title+'» из черновика?'))return;const active=slide?config.hero.slides[config.hero.initialSlide]?.id:null;items.splice(index,1);if(slide)config.hero.initialSlide=Math.max(0,items.findIndex(item=>item.id===active));changed();render()};controls.append(b)}return body;
   }
   function addButton(label,action){const row=create('div','list-actions'),button=create('button','secondary',label);button.onclick=action;row.append(button);$('#content').append(row)}
-  function home(){intro('Основные тексты первого экрана. Настройки меню и социальных ссылок находятся в разделе «Контакты и меню».');let s=section('Название и описание');fields(s.fields,[['hero.brand','Первая часть названия'],['hero.agency','Вторая часть названия'],['hero.intro','Вводный текст','textarea'],['hero.footerLocation','Подпись внизу'],['hero.footerSince','Год / дополнительная подпись']]);s=section('Услуги');config.hero.services.forEach((item,i)=>{const f=create('div','field wide');f.append(create('h3','',item.title||'Услуга'));const grid=create('div','fields');fields(grid,[[`hero.services.${i}.title`,'Название'],[`hero.services.${i}.body`,'Текст при нажатии','textarea']]);f.append(grid);s.fields.append(f)})}
+  function home(){intro('Основные тексты первого экрана. Настройки меню и социальных ссылок находятся в разделе «Контакты и меню».');let s=section('Название и описание');fields(s.fields,[['hero.brand','Первая часть названия'],['hero.agency','Вторая часть названия'],['hero.intro','Вводный текст','textarea'],['hero.worksLabel','Пункт меню «Работы»'],['hero.casesLabel','Пункт меню «Кейсы»'],['hero.footerLocation','Подпись внизу'],['hero.footerSince','Год / дополнительная подпись']]);s=section('Услуги');config.hero.services.forEach((item,i)=>{const f=create('div','field wide');f.append(create('h3','',item.title||'Услуга'));const grid=create('div','fields');fields(grid,[[`hero.services.${i}.title`,'Название'],[`hero.services.${i}.body`,'Текст при нажатии','textarea']]);f.append(grid);s.fields.append(f)})}
   function slides(){intro('Управляйте изображениями, миниатюрами и порядком слайдов. Изменения появятся на сайте после публикации.');config.hero.slides.forEach((item,i)=>{const target=listItem(item.title||'Слайд '+(i+1),i,config.hero.slides,{slide:true});const label=create('label','field checkbox'),radio=create('input');radio.type='radio';radio.name='initial-slide';radio.checked=config.hero.initialSlide===i;radio.onchange=()=>{config.hero.initialSlide=i;changed()};label.append(radio,create('span','','Показывать первым'));target.append(label);fields(target,[[`hero.slides.${i}.title`,'Название слайда'],[`hero.slides.${i}.image`,'Основное изображение','media'],[`hero.slides.${i}.thumbnail`,'Миниатюра','media'],[`hero.slides.${i}.thumbnailAlt`,'Описание миниатюры'],[`hero.slides.${i}.thumbnailCrop`,'Обрезка миниатюры как в исходном макете','checkbox'],[`hero.slides.${i}.cardImage`,'Изображение дополнительного превью справа','media'],[`hero.slides.${i}.cardCrop`,'Обрезка правого превью как в исходном макете','checkbox']])});addButton('+ Добавить слайд',()=>{if(config.hero.slides.length>=20){notice('Максимум 20 слайдов.',true);return}config.hero.slides.push({...structuredClone(config.hero.slides.at(-1)),id:crypto.randomUUID(),title:'Новый слайд',thumbnailCrop:false,cardCrop:false});changed();render()})}
   function principles(){intro('Тексты второго экрана. Три части основного текста позволяют сохранить выделение оранжевым.');let s=section('Основной блок');fields(s.fields,[['visibility.principles','Показывать раздел на сайте','checkbox'],['principles.label','Подпись раздела'],['principles.before','Текст до акцента','textarea'],['principles.highlight','Оранжевый фрагмент','textarea'],['principles.after','Текст после акцента','textarea'],['principles.description','Нижний абзац','textarea']]);s=section('Основатель');fields(s.fields,[['principles.portrait','Портрет','media'],['principles.name','Имя'],['principles.role','Должность'],['principles.quote','Цитата','textarea']]);config.principles.directions.forEach((item,i)=>{const p=section('Направление: '+item.label);fields(p.fields,[[`principles.directions.${i}.label`,'Подпись кнопки'],[`principles.directions.${i}.title`,'Заголовок окна'],[`principles.directions.${i}.body`,'Текст окна','textarea']])})}
   function process(){
@@ -100,13 +100,83 @@
       changed();render();
     });
   }
+  function cases(){
+    if(!config.cases)config.cases={title:'Кейсы',lead:'',items:[]};
+    if(!Array.isArray(config.cases.items))config.cases.items=[];
+    if(!config.visibility)config.visibility={};
+    if(typeof config.visibility.cases!=='boolean')config.visibility.cases=true;
+    if(!config.hero.casesLabel)config.hero.casesLabel='Кейсы';
+    intro('Кейсы для блока на главной и отдельных страниц /case.html?slug=…. Конструктор страницы кейса — позже; сейчас статичная вёрстка из Figma.');
+    let s=section('Раздел на главной');
+    fields(s.fields,[
+      ['visibility.cases','Показывать блок «Кейсы»','checkbox'],
+      ['hero.casesLabel','Пункт меню «Кейсы»'],
+      ['cases.title','Заголовок блока'],
+      ['cases.lead','Подзаголовок / лид','textarea']
+    ]);
+    config.cases.items.forEach((item,i)=>{
+      if(!Array.isArray(item.gallery))item.gallery=[];
+      const target=listItem(item.title||('Кейс '+(i+1)),i,config.cases.items);
+      fields(target,[
+        [`cases.items.${i}.title`,'Название кейса'],
+        [`cases.items.${i}.slug`,'Slug URL (латиница)'],
+        [`cases.items.${i}.cover`,'Обложка JPG/WEBP','media'],
+        [`cases.items.${i}.previewBg`,'Фон превью главной','color'],
+        [`cases.items.${i}.videoPreview`,'Видео превью','video'],
+        [`cases.items.${i}.category`,'Категория WEB | BRAND'],
+        [`cases.items.${i}.client`,'Клиент'],
+        [`cases.items.${i}.description`,'Описание','textarea'],
+        [`cases.items.${i}.showOnHome`,'Отображать на главной','checkbox'],
+        [`cases.items.${i}.showInBlock`,'Отображать в блоке с кейсами','checkbox']
+      ]);
+      const galleryBox=create('div','field wide');
+      galleryBox.append(create('span','','Превью для страницы кейса'));
+      item.gallery.forEach((src,g)=>{
+        const row=create('div','media-input');
+        const input=create('input');input.type='text';input.value=src||'';input.placeholder='/media/… или assets/…';
+        input.oninput=()=>{item.gallery[g]=input.value;changed()};
+        const up=create('button','secondary','Загрузить');up.type='button';
+        const picker=create('input');picker.type='file';picker.accept='image/*';picker.hidden=true;
+        up.onclick=()=>picker.click();
+        picker.onchange=async()=>{
+          const file=picker.files[0];if(!file)return;
+          try{const uploaded=await upload(file);input.value=uploaded.url;item.gallery[g]=uploaded.url;changed();notice('Превью загружено.')}catch(error){notice(error.message,true)}
+        };
+        const remove=create('button','small-button danger','×');remove.type='button';
+        remove.onclick=()=>{item.gallery.splice(g,1);changed();render()};
+        row.append(input,up,picker,remove);galleryBox.append(row);
+      });
+      const addGallery=create('button','secondary','+ Превью');addGallery.type='button';
+      addGallery.onclick=()=>{if(item.gallery.length>=40){notice('Максимум 40 превью.',true);return}item.gallery.push('');changed();render()};
+      galleryBox.append(addGallery);target.append(galleryBox);
+    });
+    addButton('+ Добавить кейс',()=>{
+      if(config.cases.items.length>=30){notice('Максимум 30 кейсов.',true);return}
+      const n=config.cases.items.length+1;
+      config.cases.items.push({
+        id:crypto.randomUUID(),
+        slug:'case-'+n,
+        title:'Новый кейс',
+        cover:'assets/works/infinity-frameworks.jpg',
+        previewBg:'#101010',
+        videoPreview:'assets/works/demo.mp4',
+        category:'WEB',
+        client:'',
+        description:'',
+        gallery:['assets/works/infinity-frameworks.jpg'],
+        showOnHome:false,
+        showInBlock:true
+      });
+      changed();render();
+    });
+  }
   function works(){intro('Добавляйте работы, меняйте порядок, превью и видео. Выключенная работа остаётся в админке, но скрыта на сайте.');let s=section('Настройки раздела');fields(s.fields,[['visibility.works','Показывать раздел','checkbox'],['works.allLabel','Подпись «Все кейсы»'],['works.caseLabel','Подпись кнопки кейса']]);config.works.items.forEach((item,i)=>{const target=listItem(item.title||'Работа '+(i+1),i,config.works.items);fields(target,[[`works.items.${i}.visible`,'Показывать работу','checkbox'],[`works.items.${i}.title`,'Название'],[`works.items.${i}.client`,'Подпись клиента'],[`works.items.${i}.category`,'Категория'],[`works.items.${i}.number`,'Номер'],[`works.items.${i}.description`,'Описание','textarea'],[`works.items.${i}.duration`,'Срок проекта'],[`works.items.${i}.preview`,'Превью','media'],[`works.items.${i}.previewAlt`,'Описание изображения'],[`works.items.${i}.video`,'Видео','video'],[`works.items.${i}.caseUrl`,'Ссылка на полный кейс','text','Оставьте пустой, чтобы открывалось встроенное окно с видео.']])});addButton('+ Добавить работу',()=>{if(config.works.items.length>=30){notice('Максимум 30 работ.',true);return}const example=config.works.items[0]||window.SITE_DEFAULTS?.works.items[0];config.works.items.push(example?{...structuredClone(example),id:crypto.randomUUID(),title:'Новая работа',visible:false}:{id:crypto.randomUUID(),title:'Новая работа',client:'',category:'web',number:'',description:'',duration:'',preview:'assets/works/render-courses.jpg',previewAlt:'',video:'assets/works/demo.mp4',caseUrl:'',visible:false});changed();render()})}
-  function contacts(){let s=section('Контакты');fields(s.fields,[['contacts.telegram','Telegram — полная ссылка'],['contacts.email','Email'],['contacts.buttonLabel','Подпись кнопки связи'],['hero.worksLabel','Пункт меню «Работы»']]);config.hero.navigation.forEach((item,i)=>{const panel=section('Меню: '+item.label);fields(panel.fields,[[`hero.navigation.${i}.label`,'Подпись пункта'],[`hero.navigation.${i}.title`,'Заголовок окна'],[`hero.navigation.${i}.body`,'Текст окна','textarea']])});config.hero.socials.forEach((item,i)=>{const target=listItem(item.label||'Социальная ссылка',i,config.hero.socials);fields(target,[[`hero.socials.${i}.label`,'Подпись'],[`hero.socials.${i}.url`,'Ссылка','text','Поддерживаются https://, mailto: и tel:.']])});addButton('+ Добавить ссылку',()=>{config.hero.socials.push({label:'Новая ссылка',url:''});changed();render()})}
+  function contacts(){let s=section('Контакты');fields(s.fields,[['contacts.telegram','Telegram — полная ссылка'],['contacts.email','Email'],['contacts.buttonLabel','Подпись кнопки связи'],['hero.worksLabel','Пункт меню «Работы»'],['hero.casesLabel','Пункт меню «Кейсы»']]);config.hero.navigation.forEach((item,i)=>{const panel=section('Меню: '+item.label);fields(panel.fields,[[`hero.navigation.${i}.label`,'Подпись пункта'],[`hero.navigation.${i}.title`,'Заголовок окна'],[`hero.navigation.${i}.body`,'Текст окна','textarea']])});config.hero.socials.forEach((item,i)=>{const target=listItem(item.label||'Социальная ссылка',i,config.hero.socials);fields(target,[[`hero.socials.${i}.label`,'Подпись'],[`hero.socials.${i}.url`,'Ссылка','text','Поддерживаются https://, mailto: и tel:.']])});addButton('+ Добавить ссылку',()=>{config.hero.socials.push({label:'Новая ссылка',url:''});changed();render()})}
   function effects(){intro('Длительности указаны в миллисекундах. Настройки применяются вместе с публикацией контента.');let s=section('Оформление и метаданные');fields(s.fields,[['meta.title','Название вкладки'],['meta.description','Описание для поисковиков','textarea'],['meta.accent','Акцентный цвет','color'],['effects.grainOpacity','Интенсивность шума, от 0 до 0,3','number'],['effects.cursor','Курсор SVG','media']]);s=section('Главный экран');fields(s.fields,[['effects.heroSlideMs','Сборка первого слайда, мс','number'],['effects.heroTextMs','Появление текстового блока, мс','number'],['effects.heroPreviewMs','Сборка миниатюр, мс','number'],['effects.slideMs','Переход между слайдами, мс','number']]);s=section('Второй экран');fields(s.fields,[['effects.principlesMainMs','Построчное появление основного текста, мс','number'],['effects.principlesDescriptionMs','Нижний абзац, мс','number'],['effects.principlesOtherMs','Остальные элементы, мс','number']]);s=section('Работы и видео');fields(s.fields,[['effects.workTextMs','Расшифровка текста, мс','number'],['effects.videoTransitionMs','Пиксельный переход видео, мс','number'],['effects.videoScale','Размер видео, от 30 до 100%','number'],['effects.videoDim','Затемнение превью, от 0 до 100%','number']])}
   async function upload(file){return api('media',{method:'POST',headers:{'Content-Type':file.type||'application/octet-stream','X-File-Name':encodeURIComponent(file.name)},body:file})}
   async function media(){intro('Загруженные файлы хранятся на сервере. Для использования вставьте ссылку в нужный слайд, работу или текстовый блок. Максимальный размер — 25 МБ.');const button=create('button','secondary','+ Загрузить файлы'),picker=create('input');picker.type='file';picker.multiple=true;picker.accept='image/*,video/mp4,audio/mpeg';picker.hidden=true;button.onclick=()=>picker.click();picker.onchange=async()=>{button.disabled=true;try{for(const file of picker.files)await upload(file);notice('Файлы загружены.');await render()}catch(error){notice(error.message,true)}finally{button.disabled=false}};$('#content').append(button,picker);const data=await api('media');if(tab!=='media')return;if(!data.items.length){$('#content').append(create('p','empty','Здесь появятся загруженные вами файлы. Исходные изображения сайта уже доступны в полях контента.'));return}const grid=create('div','media-grid');grid.style.marginTop='24px';for(const item of data.items){const card=create('article','media-card');if(item.type.startsWith('image/')){const img=create('img');img.src=item.url;img.alt=item.name;img.loading='lazy';card.append(img)}else card.append(create('div','media-placeholder',item.type.startsWith('video/')?'Видео':'Аудио'));const body=create('div','media-card-content');body.append(create('strong','',item.name),create('small','',(item.size/1024/1024).toFixed(2)+' МБ'));const actions=create('div'),copy=create('button','small-button','Ссылка'),remove=create('button','small-button danger','Удалить');copy.onclick=async()=>{try{await navigator.clipboard.writeText(new URL(item.url,location.origin).href);notice('Ссылка скопирована.')}catch{prompt('Ссылка на файл',new URL(item.url,location.origin).href)}};remove.onclick=async()=>{if(!confirm('Удалить файл «'+item.name+'»?'))return;try{await api('media/'+item.id,{method:'DELETE'});await render()}catch(error){notice(error.message,true)}};actions.append(copy,remove);body.append(actions);card.append(body);grid.append(card)}$('#content').append(grid)}
   async function history(){intro('Восстановление переносит выбранную версию в черновик. Чтобы показать её посетителям, нажмите «Опубликовать».');const data=await api('history');if(tab!=='history')return;const s=section('Опубликованные версии');if(!data.items.length){s.panel.append(create('p','muted','Публикаций через админку пока нет.'));return}for(const item of data.items){const row=create('div','history-row'),description=create('div');description.append(create('strong','',date(item.createdAt)),create('small','',item.revision===published?.revision?'Текущая публикация':'Сохранённая версия'));const button=create('button','secondary','Восстановить в черновик');button.onclick=async()=>{if(!confirm('Восстановить эту версию в черновик? Несохранённые изменения будут заменены.'))return;try{apply(await api('restore',{method:'POST',body:JSON.stringify({revision:item.revision,baseRevision:revision})}));notice('Версия восстановлена в черновик. Проверьте её в предпросмотре.');await render()}catch(error){notice(error.message,true)}};row.append(description,button);s.panel.append(row)}}
-  async function render(){if(!config)return;$('#page-title').textContent=titles[tab];document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('selected',b.dataset.tab===tab));$('#content').replaceChildren();try{await({home,slides,principles,process,faq,works,contacts,effects,media,history}[tab])()}catch(error){notice(error.message,true)}}
+  async function render(){if(!config)return;$('#page-title').textContent=titles[tab];document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('selected',b.dataset.tab===tab));$('#content').replaceChildren();try{await({home,slides,principles,cases,process,faq,works,contacts,effects,media,history}[tab])()}catch(error){notice(error.message,true)}}
   document.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{tab=button.dataset.tab;render()});$('#save').onclick=save;$('#publish').onclick=publish;
   let authMode='chatgpt';
   const signout=$('#signout-link');

@@ -195,7 +195,7 @@ function snapshot(): array {
 function validate_content($input): array {
   if (!is_array($input)) fail('Некорректный JSON контента');
   $template = defaults_content();
-  $max = ['services' => 12, 'navigation' => 8, 'slides' => 20, 'socials' => 12, 'directions' => 8, 'items' => 30, 'steps' => 12];
+  $max = ['services' => 12, 'navigation' => 8, 'slides' => 20, 'socials' => 12, 'directions' => 8, 'items' => 30, 'steps' => 12, 'gallery' => 40];
 
   $allowed_url = function (string $value): bool {
     if ($value === '') return true;
@@ -252,10 +252,10 @@ function validate_content($input): array {
     if (gettype($value) !== gettype($template)) fail('Некорректный тип: ' . $path);
     if (is_string($value)) {
       if (strlen($value) > 12000) fail('Слишком длинный текст: ' . $path);
-      if (preg_match('/\.(image|thumbnail|cardImage|preview|video|portrait|cursor|telegram|caseUrl|url|background)$/', $path) && !$allowed_url($value)) {
+      if ((preg_match('/\.(image|thumbnail|cardImage|preview|video|portrait|cursor|telegram|caseUrl|url|background|cover|videoPreview)$/', $path) || preg_match('/\.gallery\.\d+$/', $path)) && !$allowed_url($value)) {
         fail('Недопустимая ссылка: ' . $path);
       }
-      if ($path === 'meta.accent' && !preg_match('/^#[0-9a-f]{6}$/i', $value)) fail('Цвет должен иметь формат #RRGGBB');
+      if (($path === 'meta.accent' || preg_match('/\.previewBg$/', $path)) && !preg_match('/^#[0-9a-f]{6}$/i', $value)) fail('Цвет должен иметь формат #RRGGBB');
     }
     return $value;
   };
