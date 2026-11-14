@@ -2,16 +2,73 @@
   const c=window.SITE_CONTENT||structuredClone(window.SITE_DEFAULTS);window.SITE_CONTENT=c;
   const q=s=>document.querySelector(s),all=s=>[...document.querySelectorAll(s)],text=(s,value)=>{const el=typeof s==='string'?q(s):s;if(el)el.textContent=value??''};
   const el=(tag,className,value)=>{const node=document.createElement(tag);if(className)node.className=className;if(value!==undefined)node.textContent=value;return node};
-  document.title=c.meta.title;q('meta[name="description"]').content=c.meta.description;
+  const desc=q('meta[name="description"]');if(desc)desc.content=c.meta.description;
   const root=document.documentElement;root.style.setProperty('--accent',c.meta.accent);root.style.setProperty('--grain-opacity',c.effects.grainOpacity);root.style.setProperty('--grain-reduced-opacity',c.effects.grainOpacity*.5294);root.style.setProperty('--video-scale',c.effects.videoScale+'%');root.style.setProperty('--video-inset',(100-c.effects.videoScale)/2+'%');root.style.setProperty('--video-dim',c.effects.videoDim/100);
   root.style.setProperty('--site-cursor','url('+JSON.stringify(c.effects.cursor)+')');
+
+  function fillCasesList(){
+    const casesSection=q('#cases');
+    if(!casesSection||!c.cases)return;
+    document.title=(c.cases.title||'Кейсы')+' — '+(c.meta?.title||'ANDREIKO');
+    text('.cases-title',c.cases.title);
+    text('.cases-lead',c.cases.lead);
+    const rowTemplate=q('.cases-row');
+    const list=q('.cases-list');
+    if(rowTemplate&&list&&Array.isArray(c.cases.items)){
+      list.replaceChildren();
+      c.cases.items.filter(item=>item.showInBlock!==false).forEach(item=>{
+        const row=rowTemplate.cloneNode(true);
+        row.href='/case.html?slug='+encodeURIComponent(item.slug||item.id);
+        row.dataset.caseSlug=item.slug||item.id;
+        row.classList.toggle('is-home',!!item.showOnHome);
+        text(row.querySelector('.cases-name'),item.title);
+        text(row.querySelector('.cases-category'),item.category);
+        text(row.querySelector('.cases-client'),item.client);
+        text(row.querySelector('.cases-desc'),item.description);
+        // Lamalama-style: multiple previews per case (gallery → filmstrip).
+        const strip=row.querySelector('.cases-strip');
+        if(strip){
+          const previews=[...(item.gallery||[]).filter(Boolean)];
+          if(item.cover&&!previews.includes(item.cover))previews.unshift(item.cover);
+          const thumbs=previews.slice(0,4);
+          if(!thumbs.length&&item.cover)thumbs.push(item.cover);
+          strip.replaceChildren();
+          strip.style.setProperty('--case-bg',item.previewBg||'#101010');
+          thumbs.forEach((src,index)=>{
+            const thumb=document.createElement('div');
+            thumb.className='cases-thumb';
+            const img=document.createElement('img');
+            img.src=src;img.alt='';img.loading=index?'lazy':'eager';
+            thumb.append(img);
+            if(index===0&&item.videoPreview){
+              const video=document.createElement('video');
+              video.className='cases-video';video.muted=true;video.loop=true;video.playsInline=true;
+              video.preload='none';video.dataset.src=item.videoPreview;
+              thumb.append(video);
+            }
+            strip.append(thumb);
+          });
+        }
+        list.append(row);
+      });
+    }
+    if(c.visibility&&c.visibility.cases===false)casesSection.hidden=true;
+  }
+
+  // Case detail / cases listing pages: skip homepage-only binding.
+  if(!q('.hero')){
+    fillCasesList();
+    return;
+  }
+
+  document.title=c.meta.title;
   text('.brand h1',c.hero.brand);text('.brand p',c.hero.agency);text('.intro',c.hero.intro);text('footer .details span:nth-child(1)',c.hero.footerLocation);text('footer .details span:nth-child(2)',c.hero.footerSince);
   const panels={};
   q('.services').replaceChildren();
   c.hero.services.forEach((service,i)=>{const line=el('img');line.src='assets/'+(i===0?'line0.svg':'line1.svg');line.alt='';const button=el('button','fx',service.title);button.dataset.panel=service.title;panels[service.title]=service.body;q('.services').append(line,button)});
   const endLine=el('img');endLine.src='assets/line1.svg';endLine.alt='';q('.services').append(endLine);
   const nav=q('.navigation');nav.replaceChildren();const works=el('button','active fx',c.hero.worksLabel);works.id='works';nav.append(works);
-  const casesNav=el('button','fx',c.hero.casesLabel||'Кейсы');casesNav.id='nav-cases';casesNav.dataset.scroll='#cases';nav.append(casesNav);
+  const casesNav=el('a','fx',c.hero.casesLabel||'Кейсы');casesNav.id='nav-cases';casesNav.href='/cases.html';nav.append(casesNav);
   c.hero.navigation.forEach(item=>{const button=el('button','fx',item.label);button.dataset.panel=item.title;panels[item.title]=item.body;nav.append(button)});
   const thumbs=q('.thumbnails');thumbs.replaceChildren();thumbs.classList.toggle('many-slides',c.hero.slides.length>5);
   c.hero.slides.forEach((slide,i)=>{const button=el('button','thumb'+(slide.thumbnailCrop?' crop':'')+(i===c.hero.initialSlide?' selected':''));button.dataset.project=i;button.setAttribute('aria-label',slide.title);button.setAttribute('aria-pressed',String(i===c.hero.initialSlide));const image=el('img');image.src=slide.thumbnail||slide.image;image.alt=slide.thumbnailAlt||slide.title;button.append(image);thumbs.append(button)});
@@ -70,34 +127,6 @@
       });
     }
     faqSection.hidden=!c.visibility.faq;
-  }
-  const casesSection=q('#cases');
-  if(casesSection&&c.cases){
-    text('.cases-title',c.cases.title);
-    text('.cases-lead',c.cases.lead);
-    const rowTemplate=q('.cases-row');
-    const list=q('.cases-list');
-    if(rowTemplate&&list&&Array.isArray(c.cases.items)){
-      list.replaceChildren();
-      c.cases.items.filter(item=>item.showInBlock).forEach(item=>{
-        const row=rowTemplate.cloneNode(true);
-        row.href='/case.html?slug='+encodeURIComponent(item.slug||item.id);
-        row.dataset.caseSlug=item.slug||item.id;
-        row.classList.toggle('is-home',!!item.showOnHome);
-        text(row.querySelector('.cases-name'),item.title);
-        text(row.querySelector('.cases-category'),item.category);
-        text(row.querySelector('.cases-client'),item.client);
-        text(row.querySelector('.cases-desc'),item.description);
-        const media=row.querySelector('.cases-media');
-        if(media)media.style.setProperty('--case-bg',item.previewBg||'#101010');
-        const cover=row.querySelector('.cases-cover');
-        if(cover){cover.src=item.cover||'';cover.alt=item.title||''}
-        const video=row.querySelector('.cases-video');
-        if(video){video.dataset.src=item.videoPreview||'';video.removeAttribute('src')}
-        list.append(row);
-      });
-    }
-    casesSection.hidden=!c.visibility.cases;
   }
   q('#principles').hidden=!c.visibility.principles;workList.hidden=!c.visibility.works;
   window.SITE_PANELS=panels;

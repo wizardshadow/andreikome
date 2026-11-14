@@ -323,7 +323,8 @@
         "gallery": [
           "assets/works/infinity-frameworks.jpg",
           "assets/work3.png",
-          "assets/work1.png"
+          "assets/work1.png",
+          "assets/case/idea-photo.png"
         ],
         "showOnHome": true,
         "showInBlock": true
@@ -340,7 +341,9 @@
         "description": "Светлый минималистичный дизайн с акцентом на визуализации и преимуществах клуба.",
         "gallery": [
           "assets/works/render-courses.jpg",
-          "assets/work4.png"
+          "assets/work4.png",
+          "assets/work5.png",
+          "assets/work6.png"
         ],
         "showOnHome": true,
         "showInBlock": true
@@ -357,7 +360,9 @@
         "description": "Ничего лишнего — только работа клиента и интерфейс. Акцент на простоте и минимализме.",
         "gallery": [
           "assets/works/river-black.jpg",
-          "assets/work5.png"
+          "assets/work5.png",
+          "assets/work2.png",
+          "assets/work6.png"
         ],
         "showOnHome": false,
         "showInBlock": true

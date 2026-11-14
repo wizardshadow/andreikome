@@ -4,9 +4,9 @@
   if (!section) return;
 
   const list = section.querySelector('.cases-list');
-  const rows = [...list.querySelectorAll('.cases-row')];
+  if (!list) return;
 
-  rows.forEach((row) => {
+  const bindRow = (row) => {
     const video = row.querySelector('.cases-video');
     const src = video?.dataset.src;
     if (!video || !src || reduced) return;
@@ -23,20 +23,18 @@
     row.addEventListener('pointerleave', leave);
     row.addEventListener('focusin', enter);
     row.addEventListener('focusout', leave);
+  };
+
+  const observe = new MutationObserver(() => {
+    [...list.querySelectorAll('.cases-row')].forEach((row) => {
+      if (row.dataset.bound) return;
+      row.dataset.bound = '1';
+      bindRow(row);
+    });
   });
-
-  const navCases = document.querySelector('#nav-cases,[data-scroll="#cases"]');
-  if (navCases) {
-    navCases.addEventListener('click', (event) => {
-      event.preventDefault();
-      section.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
-    });
-  }
-
-  const worksAll = document.querySelector('.works-all');
-  if (worksAll) {
-    worksAll.addEventListener('click', () => {
-      section.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
-    });
-  }
+  observe.observe(list, { childList: true });
+  [...list.querySelectorAll('.cases-row')].forEach((row) => {
+    row.dataset.bound = '1';
+    bindRow(row);
+  });
 })();

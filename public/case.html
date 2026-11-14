@@ -12,10 +12,10 @@
 <body class="case-page">
 <header class="case-chrome">
   <a class="case-brand" href="/">ANDREIKO<span>AGENCY</span></a>
-  <a class="case-back" href="/#cases">[ ко всем кейсам ]</a>
+  <a class="case-back" href="/cases.html">[ ко всем кейсам ]</a>
 </header>
 
-<!-- Обложка 718:6717 — 2800×2175 -->
+<!-- Обложка: HTML typography + Figma hero asset (CMS cover/title) -->
 <section class="case-cover case-stage" data-case-section="cover" style="--stage-h:2175">
   <div class="case-cover-bg" aria-hidden="true">
     <img class="case-cover-texture" src="assets/case/cover-texture.png" alt="">
@@ -41,7 +41,7 @@
   <p class="case-cover-blurb" data-case-description-short></p>
 </section>
 
-<!-- Проект & Идея 718:6408 — 2800×3446 -->
+<!-- Проект & Идея — live HTML from Figma structure -->
 <section class="case-idea case-stage" data-case-section="idea" style="--stage-h:3446">
   <div class="case-idea-bg" aria-hidden="true">
     <img src="assets/case/idea-texture.png" alt="">
@@ -80,17 +80,15 @@
   </div>
 </section>
 
-<!-- Тейпы + мокап -->
-<section class="case-tapes" data-case-section="tapes" aria-label="Мокапы">
-  <img class="case-tapes-img" src="assets/case/tapes-mockup.png" alt="" data-case-tapes>
+<!-- Figma section exports for mockup-heavy stretches (pixel-faithful) -->
+<section class="case-figma-block" data-case-section="tapes" aria-label="Тейпы и мокапы">
+  <img src="assets/case/section-tapes.png" alt="" data-case-tapes>
 </section>
 
-<!-- Экраны / галерея CMS -->
-<section class="case-screens" data-case-section="screens" aria-label="Экраны">
-  <div class="case-screens-grid" data-case-gallery></div>
+<section class="case-figma-block" data-case-section="screens12" aria-label="Экраны">
+  <img src="assets/case/section-screens12.jpg" alt="">
 </section>
 
-<!-- WE'RE 718:5918 -->
 <section class="case-were case-stage" data-case-section="were" style="--stage-h:2764">
   <div class="case-were-bg" aria-hidden="true">
     <div class="case-grid-pattern"></div>
@@ -111,8 +109,20 @@
   </div>
 </section>
 
-<!-- Сроки & Разработка -->
-<section class="case-timeline case-stage" data-case-section="timeline" style="--stage-h:1800">
+<section class="case-figma-block" data-case-section="mockup" aria-label="Мокап">
+  <img src="assets/case/section-mockup.png" alt="">
+</section>
+
+<section class="case-figma-block" data-case-section="screens34" aria-label="Экраны продолжение">
+  <img src="assets/case/section-screens34.jpg" alt="">
+</section>
+
+<!-- CMS gallery (additional previews) -->
+<section class="case-screens" data-case-section="gallery" aria-label="Галерея">
+  <div class="case-screens-grid" data-case-gallery></div>
+</section>
+
+<section class="case-timeline case-stage" data-case-section="timeline" style="--stage-h:1400">
   <div class="case-grid-pattern" aria-hidden="true"></div>
   <p class="case-label case-timeline-kicker">[ сроки &amp; разработка ]</p>
   <h2 class="case-timeline-title">СРОКИ <span class="case-amp">&</span><br>РАЗРАБОТКА</h2>
@@ -133,7 +143,6 @@
   <p class="case-timeline-note" data-case-timeline-note>Средний срок полного цикла — около месяца. Точные даты фиксируем в предложении после обсуждения продукта.</p>
 </section>
 
-<!-- CTA / СВЯЗЬ (merged with ending visual language) -->
 <section class="case-end case-stage" data-case-section="end" style="--stage-h:2191">
   <div class="case-end-bg" aria-hidden="true">
     <img src="assets/case/end-texture.png" alt="">
@@ -164,13 +173,15 @@
 
 <nav class="site-dock is-visible" id="site-dock" aria-label="Быстрая навигация">
   <a href="/">Главная</a>
-  <a href="/#cases">Кейсы</a>
+  <a href="/cases.html">Кейсы</a>
   <a href="/#process">Процесс</a>
   <a href="/#faq">FAQ</a>
   <a href="/" data-dock-contact>Контакты</a>
 </nav>
+<canvas id="grain" aria-hidden="true"></canvas>
 
 <script src="content-defaults.js"></script><!-- cms-content --><script src="content.js"></script>
 <script src="case.js"></script>
+<script src="ambient.js"></script>
 <script src="nav-dock.js"></script>
 </body></html>

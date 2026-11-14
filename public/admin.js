@@ -108,12 +108,12 @@
     if(!config.visibility)config.visibility={};
     if(typeof config.visibility.cases!=='boolean')config.visibility.cases=true;
     if(!config.hero.casesLabel)config.hero.casesLabel='Кейсы';
-    intro('Кейсы для блока на главной и отдельных страниц /case.html?slug=…. Конструктор страницы кейса — позже; сейчас статичная вёрстка из Figma.');
+    intro('Раздел «Кейсы» — отдельная страница /cases.html. Карточки ведут на /case.html?slug=…. Конструктор страницы кейса — позже; сейчас статичная вёрстка из Figma.');
     let s=section('Раздел на главной');
     fields(s.fields,[
-      ['visibility.cases','Показывать блок «Кейсы»','checkbox'],
+      ['visibility.cases','Показывать страницу «Кейсы»','checkbox'],
       ['hero.casesLabel','Пункт меню «Кейсы»'],
-      ['cases.title','Заголовок блока'],
+      ['cases.title','Заголовок страницы'],
       ['cases.lead','Подзаголовок / лид','textarea']
     ]);
     config.cases.items.forEach((item,i)=>{
@@ -123,13 +123,13 @@
         [`cases.items.${i}.title`,'Название кейса'],
         [`cases.items.${i}.slug`,'Slug URL (латиница)'],
         [`cases.items.${i}.cover`,'Обложка JPG/WEBP','media'],
-        [`cases.items.${i}.previewBg`,'Фон превью главной','color'],
+        [`cases.items.${i}.previewBg`,'Фон превью в списке','color'],
         [`cases.items.${i}.videoPreview`,'Видео превью','video'],
         [`cases.items.${i}.category`,'Категория WEB | BRAND'],
         [`cases.items.${i}.client`,'Клиент'],
         [`cases.items.${i}.description`,'Описание','textarea'],
-        [`cases.items.${i}.showOnHome`,'Отображать на главной','checkbox'],
-        [`cases.items.${i}.showInBlock`,'Отображать в блоке с кейсами','checkbox']
+        [`cases.items.${i}.showOnHome`,'Избранный (метка на странице кейсов)','checkbox'],
+        [`cases.items.${i}.showInBlock`,'Показывать на странице «Кейсы»','checkbox']
       ]);
       const galleryBox=create('div','field wide');
       galleryBox.append(create('span','','Превью для страницы кейса'));

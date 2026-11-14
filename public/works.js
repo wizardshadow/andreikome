@@ -138,11 +138,7 @@
     body.append(title,copy,video);if(!dialog.open)dialog.showModal();updateFocus();reveal(title,0,600);
   }
   section.querySelectorAll('[data-case-index]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.caseUrl){window.open(button.dataset.caseUrl,'_blank','noopener,noreferrer');return}openCase(Number(button.dataset.caseIndex))}));
-  section.querySelector('.works-all').onclick=()=>{
-    body.replaceChildren();const title=document.createElement('h2'),list=document.createElement('div');title.id='works-dialog-title';title.textContent='Все кейсы';title.className='fx';list.className='works-collection';
-    states.forEach((state,index)=>{const button=document.createElement('button');button.type='button';button.textContent=(state.card.querySelector('.work-title').getAttribute('aria-label')||state.card.querySelector('.work-title').textContent)+' ↗';button.onclick=()=>openCase(index);button.addEventListener('pointerenter',()=>sound());list.append(button)});
-    body.append(title,list);dialog.showModal();updateFocus();reveal(title,0,600);
-  };
+  section.querySelector('.works-all').onclick=()=>{location.href='/cases.html'};
   dialog.addEventListener('close',()=>{dialog.querySelectorAll('video').forEach(video=>video.pause());scheduleParallax()});
   document.querySelector('#works').onclick=()=>section.scrollIntoView({behavior:reduced?'instant':'smooth'});
 })();

@@ -1,11 +1,11 @@
 (() => {
   const dock = document.querySelector('#site-dock');
   if (!dock) return;
-  const isCasePage = document.body.classList.contains('case-page');
+  const isCasesSurface = document.body.classList.contains('case-page') || document.body.classList.contains('cases-page');
   const hero = document.querySelector('.hero');
 
   function sync() {
-    if (isCasePage) {
+    if (isCasesSurface) {
       dock.hidden = false;
       dock.classList.add('is-visible');
       return;
