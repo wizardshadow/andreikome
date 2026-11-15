@@ -12,3 +12,8 @@ RewriteRule ^api/admin(?:/(.*))?$ /api/admin/index.php [QSA,L]
 
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^preview/?$ /api/admin/preview.php [QSA,L]
+
+# Music player
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^music/?$ /music/index.html [L]
