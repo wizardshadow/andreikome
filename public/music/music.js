@@ -103,7 +103,6 @@
     titleNext.textContent = titleLabel((index + 1) % TRACKS.length);
     barLabel.textContent = `${numLabel(index)} ${track.title.toUpperCase()}`;
     timeTotal.textContent = fmt(audio.duration || track.duration);
-    document.title = `${track.title} — ANDREIKO Music`;
     document.body.classList.toggle('is-playing', !audio.paused);
     renderList();
   }
