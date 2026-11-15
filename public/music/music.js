@@ -31,7 +31,7 @@
     const s = Math.floor(sec);
     return `${Math.floor(s / 60)}:${pad(s % 60)}`;
   };
-  const numLabel = (i) => `1–${i + 1}`;
+  const numLabel = (i) => pad(i + 1);
   const titleLabel = (i) => `${pad(i + 1)}—${TRACKS[i].title.toUpperCase()}`;
 
   function buildWaveSeeds(trackIndex) {
