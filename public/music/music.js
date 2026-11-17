@@ -1,6 +1,6 @@
 (() => {
   const TRACKS = [
-    { id: '2-flames', title: '2 Flames', src: '2-flames.mp3', duration: 108.792 },
+    { id: 'paints', title: 'Paints', src: 'paints.mp3', duration: 182.592 },
     { id: 'fall-in-love', title: 'Fall In Love', src: 'fall-in-love.mp3', duration: 91.68 },
     { id: 'whole-world', title: 'Whole World', src: 'whole-world.mp3', duration: 70.621 },
   ];
