@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="description" content="ANDREIKO — Music">
+<title>Алексей Палёный \ Демо от Popcorn Records</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="music.css">
+</head>
+<body class="music-page">
+<div class="music-shell" id="music-app">
+  <aside class="music-hero" aria-label="Артист">
+    <div class="music-hero-bg" aria-hidden="true"></div>
+    <img class="music-artist" src="artist.png" alt="ANDREIKO">
+    <div class="music-grain music-grain-left" aria-hidden="true"></div>
+    <button type="button" class="music-play-all" id="play-all">▶ PLAY ALL</button>
+  </aside>
+
+  <section class="music-panel" aria-label="Плеер">
+    <header class="music-panel-top">
+      <span class="music-eq" aria-hidden="true">
+        <i></i><i></i><i></i><i></i>
+      </span>
+    </header>
+
+    <div class="music-titles" aria-live="polite">
+      <h1 class="music-title-current" id="title-current">01—PAINTS</h1>
+      <p class="music-title-next" id="title-next">02—FALL IN LOVE</p>
+    </div>
+
+    <ul class="music-tracks" id="track-list" role="list"></ul>
+
+    <footer class="music-bar">
+      <div class="music-bar-meta">
+        <span id="bar-label">01 PAINTS</span>
+      </div>
+      <div class="music-bar-controls">
+        <button type="button" id="btn-prev" aria-label="Предыдущий трек">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 6h2v12H6V6zm3.5 6 8.5 6V6l-8.5 6z"/></svg>
+        </button>
+        <button type="button" id="btn-toggle" aria-label="Play/Pause">
+          <svg class="icon-play" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M8 5v14l11-7L8 5z"/></svg>
+          <svg class="icon-pause" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" hidden><path d="M6 5h4v14H6V5zm8 0h4v14h-4V5z"/></svg>
+        </button>
+        <button type="button" id="btn-next" aria-label="Следующий трек">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M16 6h2v12h-2V6zM6 18l8.5-6L6 6v12z"/></svg>
+        </button>
+      </div>
+      <div class="music-wave-wrap">
+        <canvas class="music-wave" id="wave" height="40" aria-hidden="true"></canvas>
+        <input class="music-seek" id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Перемотка">
+      </div>
+      <div class="music-bar-time">
+        <span id="time-now">0:00</span>
+        <span>/</span>
+        <span id="time-total">0:00</span>
+        <button type="button" class="music-vol" id="btn-mute" aria-label="Громкость">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 10v4h4l5 4V6L7 10H3zm13.5 2a3.5 3.5 0 0 0-1.8-3.1v6.2A3.5 3.5 0 0 0 16.5 12zM14 4.5v2.1a6 6 0 0 1 0 10.8v2.1a8 8 0 0 0 0-15z"/></svg>
+        </button>
+      </div>
+    </footer>
+  </section>
+</div>
+
+<audio id="audio" preload="metadata"></audio>
+<canvas class="music-grain-canvas" id="grain" aria-hidden="true"></canvas>
+<script src="music.js"></script>
+</body>
+</html>

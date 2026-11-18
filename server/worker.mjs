@@ -4,14 +4,14 @@ const failure=(message,status=400)=>{throw Object.assign(new Error(message),{sta
 const cleanPath=pathname=>decodeURIComponent(pathname).replace(/^\//,'');
 function allowedUrl(value){if(!value)return true;if(/[\x00-\x20<>"'\\]/.test(value)||value.startsWith('//'))return false;try{const u=new URL(value,'https://local.invalid');if(u.protocol==='https:')return !decodeURIComponent(u.pathname).split('/').includes('..');return u.protocol==='mailto:'||u.protocol==='tel:'}catch{return false}}
 function validateContent(input){
-  const maxArrays={services:12,navigation:8,slides:20,socials:12,directions:8,items:30};
+  const maxArrays={services:12,navigation:8,slides:20,socials:12,directions:8,items:30,steps:12};
   function visit(value,template,path){
     if(Array.isArray(template)){if(!Array.isArray(value)||value.length>(maxArrays[path.split('.').at(-1)]||30))failure('Некорректный список: '+path);return value.map((v,i)=>visit(v,template[0],path+'.'+i))}
-    if(template&&typeof template==='object'){if(!value||typeof value!=='object'||Array.isArray(value))failure('Некорректный раздел: '+path);const result={};for(const key of Object.keys(template)){if(!(key in value))failure('Отсутствует поле: '+path+'.'+key);result[key]=visit(value[key],template[key],path?path+'.'+key:key)}return result}
+    if(template&&typeof template==='object'){if(!value||typeof value!=='object'||Array.isArray(value))failure('Некорректный раздел: '+path);const result={};for(const key of Object.keys(template)){if(!(key in value)){result[key]=visit(template[key],template[key],path?path+'.'+key:key);continue}result[key]=visit(value[key],template[key],path?path+'.'+key:key)}return result}
     if(typeof value!==typeof template)failure('Некорректный тип: '+path);
     if(typeof value==='string'){
       if(value.length>12000)failure('Слишком длинный текст: '+path);
-      if(/\.(image|thumbnail|cardImage|preview|video|portrait|cursor|telegram|caseUrl|url)$/.test(path)&&!allowedUrl(value))failure('Недопустимая ссылка: '+path);
+      if(/\.(image|thumbnail|cardImage|preview|video|portrait|cursor|telegram|caseUrl|url|background)$/.test(path)&&!allowedUrl(value))failure('Недопустимая ссылка: '+path);
       if(path==='meta.accent'&&!/^#[0-9a-f]{6}$/i.test(value))failure('Цвет должен иметь формат #RRGGBB');
     }
     if(typeof value==='number'){
@@ -85,8 +85,9 @@ export default{async fetch(request,env){try{
   const url=new URL(request.url),path=url.pathname;
   if(path.startsWith('/api/admin/'))return await adminApi(request,env,path);
   if(path==='/api/content')return json((await published(env)).content);
-  if(path==='/admin'||path==='/admin/'){
-    if(!identity(request))return Response.redirect(url.origin+'/signin-with-chatgpt?return_to=%2Fadmin',302);admin(request);return new Response(STATIC_ASSETS['admin.html'].body,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Frame-Options':'SAMEORIGIN'}});
+  if(path==='/admin'||path==='/admin/'||path==='/cpanel'||path==='/cpanel/'||path==='/cpanel/index.html'){
+    const returnTo=path.startsWith('/admin')?'%2Fadmin':'%2Fcpanel';
+    if(!identity(request))return Response.redirect(url.origin+'/signin-with-chatgpt?return_to='+returnTo,302);admin(request);return new Response(STATIC_ASSETS['admin.html'].body,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Frame-Options':'SAMEORIGIN'}});
   }
   if(path==='/preview'){admin(request);const state=await snapshot(env);return new Response(pageHtml(state.draft.content),{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':'noindex','X-Frame-Options':'SAMEORIGIN'}})}
   if(path==='/ANDREIKO-Agency.zip')return await downloadZip(env);
