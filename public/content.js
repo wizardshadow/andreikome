@@ -23,6 +23,53 @@
   const workTemplate=q('.work').cloneNode(true),workList=q('#selected-works'),footer=workList.querySelector('.works-all');all('.work').forEach(node=>node.remove());
   c.works.items.filter(item=>item.visible).forEach((item,index)=>{const article=workTemplate.cloneNode(true);article.dataset.work=index;const title=article.querySelector('.work-title');title.id='work-title-'+(index+1);article.setAttribute('aria-labelledby',title.id);text(title,item.title);text(article.querySelector('.work-client'),item.client);text(article.querySelector('.work-index .fx'),item.category);text(article.querySelector('.work-number'),item.number);text(article.querySelector('.work-description'),item.description);text(article.querySelector('.work-duration'),item.duration);const image=article.querySelector('.work-preview');image.src=item.preview;image.alt=item.previewAlt||item.title;const video=article.querySelector('video');video.dataset.src=item.video;video.setAttribute('aria-label','Видео проекта '+item.title);const link=article.querySelector('.work-case-link');link.dataset.caseIndex=index;link.dataset.caseUrl=item.caseUrl;text(link,c.works.caseLabel);article.querySelector('.work-play').setAttribute('aria-label','Воспроизвести видео '+item.title);workList.insertBefore(article,footer)});
   text('.works-all .fx',c.works.allLabel);text('.contact-link',c.contacts.buttonLabel);q('.contact-link').href=c.contacts.telegram||('mailto:'+c.contacts.email);text('.panel-content .eyebrow',c.hero.brand+' / '+c.hero.agency);
+  const processSection=q('#process');
+  if(processSection&&c.process){
+    text('.process-label .fx',c.process.label);
+    const titles=all('.process-headline>.fx');text(titles[0],c.process.titleAccent);text(titles[1],c.process.title);
+    text('.process-summary-term',c.process.term);text('.process-summary-cost',c.process.cost);
+    const bg=q('.process-bg img');if(bg&&c.process.background)bg.src=c.process.background;
+    const cardTemplate=q('.process-card');
+    if(cardTemplate&&Array.isArray(c.process.steps)){
+      const track=q('.process-track');
+      track.replaceChildren();
+      c.process.steps.forEach((step,index)=>{
+        const card=cardTemplate.cloneNode(true);
+        card.dataset.step=index;
+        card.querySelectorAll('.process-card-face').forEach(face=>{
+          text(face.querySelector('.process-index'),step.index);
+          text(face.querySelector('.process-card-title'),step.title);
+          text(face.querySelector('.process-card-copy'),step.body);
+          text(face.querySelector('.process-card-days'),step.days);
+        });
+        track.append(card);
+      });
+    }
+    processSection.hidden=!c.visibility.process;
+  }
+  const faqSection=q('#faq');
+  if(faqSection&&c.faq){
+    text('.faq-title',c.faq.title);
+    const itemTemplate=q('.faq-item');
+    if(itemTemplate&&Array.isArray(c.faq.items)){
+      const list=q('.faq-list');
+      list.replaceChildren();
+      c.faq.items.forEach((item,index)=>{
+        const row=itemTemplate.cloneNode(true);
+        row.dataset.faqIndex=index;
+        text(row.querySelector('.faq-question'),item.question);
+        text(row.querySelector('.faq-answer'),item.answer);
+        const trigger=row.querySelector('.faq-trigger');
+        if(trigger){
+          trigger.setAttribute('aria-expanded','false');
+          const panel=row.querySelector('.faq-panel');
+          if(panel){panel.id='faq-panel-'+index;trigger.setAttribute('aria-controls',panel.id)}
+        }
+        list.append(row);
+      });
+    }
+    faqSection.hidden=!c.visibility.faq;
+  }
   q('#principles').hidden=!c.visibility.principles;workList.hidden=!c.visibility.works;
   window.SITE_PANELS=panels;
 })();

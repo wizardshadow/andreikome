@@ -1,11 +1,24 @@
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!<>-_[]{}—+=*';
+function originalText(el){
+  return el.dataset.original||el.getAttribute('aria-label')||el.textContent;
+}
+function appendSpace(target,char=' '){
+  // Space must be a real letter node — flex/grid drop bare whitespace text nodes.
+  const span=document.createElement('span');span.className='letter space';span.dataset.char=char===' '? '\u00a0':char;
+  const glyph=document.createElement('span');glyph.className='glyph';glyph.textContent=span.dataset.char;
+  span.append(glyph);span.setAttribute('aria-hidden','true');target.append(span);
+}
 function prepare(el){
-  if(el.dataset.ready)return;
-  const text=el.textContent;el.setAttribute('aria-label',text);el.dataset.ready='1';el.textContent='';
+  if(el.dataset.ready==='1'&&el.querySelector('.letter'))return;
+  const text=originalText(el);
+  el.dataset.original=text;el.setAttribute('aria-label',text);el.dataset.ready='1';el.textContent='';
   text.split(/(\s+)/u).filter(Boolean).forEach(token=>{
-    // Leave spaces as text nodes so wrapping is allowed only between words.
-    if(/^\s+$/u.test(token)){el.append(token);return}
+    if(/^\s+$/u.test(token)){
+      const gap=document.createElement('span');gap.className='word space-word';
+      [...token].forEach(c=>appendSpace(gap,c===' '?'\u00a0':c));
+      el.append(gap);return;
+    }
     const word=document.createElement('span');word.className='word';
     [...token].forEach(c=>{
       const span=document.createElement('span');span.className='letter';span.dataset.char=c;
@@ -15,29 +28,50 @@ function prepare(el){
     el.append(word);
   });
 }
+function settleReveal(el){
+  if(!el)return;
+  if(el._timer){clearInterval(el._timer);el._timer=null}
+  const original=originalText(el);
+  el.dataset.original=original;
+  el.setAttribute('aria-label',original);
+  // Restore plain text so letter spans never leave layout offset after hover.
+  el.textContent=original;
+  el.dataset.ready='';
+  const done=el._finishReveal;el._finishReveal=null;done?.();
+}
 function reveal(el,delay=0,duration=null){
-  prepare(el);clearInterval(el._timer);el._finishReveal?.();
-  if(reduced)return Promise.resolve();
+  // Never rebuild from mid-scramble DOM — original stays in data-original/aria-label.
+  if(el.dataset.ready==='1'&&!el.querySelector('.letter')&&el.dataset.original){
+    el.dataset.ready='';
+  }
+  prepare(el);clearInterval(el._timer);el._timer=null;
+  const prev=el._finishReveal;el._finishReveal=null;prev?.();
+  if(reduced){settleReveal(el);return Promise.resolve()}
   const letters=[...el.querySelectorAll('.letter')];
   const step=duration===null?14:Math.max(0,(duration-140)/Math.max(1,letters.length-1));
   const total=duration??(letters.length*14+170);
-  letters.forEach(span=>{span.firstElementChild.textContent='\u00a0';span.classList.remove('flash')});
+  letters.forEach(span=>{const glyph=span.firstElementChild;if(glyph)glyph.textContent='\u00a0';span.classList.remove('flash')});
   return new Promise(resolve=>{
     el._finishReveal=resolve;const start=performance.now()+delay;
     el._timer=setInterval(()=>{
       const t=performance.now()-start;
       letters.forEach((span,i)=>{
-        const original=span.dataset.char,glyph=span.firstElementChild,progress=t-i*step;
-        if(original===' '){glyph.textContent=' ';return}
+        const original=span.dataset.char,glyph=span.firstElementChild;if(!glyph)return;
+        const progress=t-i*step;
+        if(original===' '||original==='\u00a0'){glyph.textContent='\u00a0';span.classList.remove('flash');return}
         if(progress<0){glyph.textContent='\u00a0';span.classList.remove('flash')}
         else if(progress<140){glyph.textContent=chars[Math.floor(Math.random()*chars.length)];span.classList.add('flash')}
         else{glyph.textContent=original;span.classList.remove('flash')}
       });
-      if(t>=total){clearInterval(el._timer);el._finishReveal=null;resolve()}
+      if(t>=total){
+        clearInterval(el._timer);el._timer=null;
+        letters.forEach(span=>{const glyph=span.firstElementChild;if(glyph)glyph.textContent=span.dataset.char||'';span.classList.remove('flash')});
+        el._finishReveal=null;resolve();
+      }
     },16);
   });
 }
-// Reveal layers sequentially; the first screen defaults to 160 ms per layer.
+// Reveal every .fx node inside a layer together (shared duration, no stagger).
 async function revealLayer(layer,duration=window.SITE_CONTENT.effects.heroTextMs){
   const texts=layer.matches('.fx')?[layer]:[...layer.querySelectorAll('.fx')];
   const ready=texts.map(el=>reveal(el,0,duration));
@@ -47,13 +81,138 @@ async function revealLayer(layer,duration=window.SITE_CONTENT.effects.heroTextMs
     await Promise.all([...ready,animation.finished]);
   }else await Promise.all(ready);
 }
-// Reveal the page only after its initial images and brand fonts are ready.
+let enabled=true,unlocked=false,lastSound=0;try{enabled=localStorage.getItem('andreiko-sound')!=='off'}catch{}
+const taps=Array.from({length:5},(_,i)=>{let a=new Audio(`assets/tap_0${i+1}.mp3`);a.volume=.15;a.preload='auto';return a});
+function sound(){if(!enabled||!unlocked)return;if(performance.now()-lastSound<65)return;lastSound=performance.now();const a=taps[Math.floor(Math.random()*taps.length)].cloneNode();a.volume=.15;a.play().catch(()=>{})}
+const soundBtn=document.querySelector('.sound');
+function updateSound(){soundBtn.dataset.ready='';soundBtn.textContent=enabled?'Звук [ вкл ]':'Звук [ выкл ]';soundBtn.setAttribute('aria-pressed',enabled);soundBtn.setAttribute('aria-label',enabled?'Выключить звук':'Включить звук');prepare(soundBtn)}
+soundBtn.onclick=()=>{enabled=!enabled;try{localStorage.setItem('andreiko-sound',enabled?'on':'off')}catch{}updateSound()};
+
+function easeOutCubic(t){return 1-Math.pow(1-t,3)}
+function prepareLoaderText(el){
+  if(el.dataset.ready)return el._loaderChars||[];
+  const text=el.textContent;el.dataset.ready='1';el.setAttribute('aria-label',text);el.textContent='';
+  const nodes=[];
+  [...text].forEach(c=>{
+    if(c===' '){el.append(' ');return}
+    const span=document.createElement('span');span.className='preloader-char';span.dataset.char=c;span.textContent=c;el.append(span);nodes.push(span);
+  });
+  el._loaderChars=nodes;return nodes;
+}
+function decodeLoaderText(el,{delay=100,withCursor=true}={}){
+  const nodes=prepareLoaderText(el);el.classList.add('is-ready');
+  if(withCursor)el.classList.add('is-typing');
+  if(reduced){nodes.forEach(n=>n.textContent=n.dataset.char);el.classList.remove('is-typing');return Promise.resolve()}
+  nodes.forEach(n=>n.textContent='\u00a0');
+  const step=28,scramble=140,total=delay+nodes.length*step+scramble;
+  const start=performance.now();
+  return new Promise(resolve=>{
+    const tick=now=>{
+      const t=now-start;
+      nodes.forEach((span,i)=>{
+        const progress=t-delay-i*step;
+        if(progress<0){span.textContent='\u00a0';span.classList.remove('is-flash')}
+        else if(progress<scramble){span.textContent=chars[Math.floor(Math.random()*chars.length)];span.classList.add('is-flash')}
+        else{span.textContent=span.dataset.char;span.classList.remove('is-flash')}
+      });
+      if(t<total)requestAnimationFrame(tick);
+      else{el.classList.remove('is-typing');resolve()}
+    };
+    requestAnimationFrame(tick);
+  });
+}
+function startStatusScroller(root){
+  const list=root.querySelector('.preloader-items');
+  const items=[...root.querySelectorAll('.preloader-item')];
+  if(!list||!items.length)return()=>{};
+  if(reduced){
+    items.forEach((item,i)=>item.classList.toggle('is-active',i===0));
+    return()=>{};
+  }
+  let frame=0,start=performance.now(),cycle=3000,stopped=false;
+  const markActive=()=>{
+    const wrap=list.parentElement;if(!wrap)return;
+    const mid=wrap.getBoundingClientRect().top+wrap.offsetHeight/2;
+    items.forEach(item=>{
+      const box=item.getBoundingClientRect();
+      const center=box.top+box.height/2;
+      const active=Math.abs(center-mid)<=box.height;
+      item.classList.toggle('is-active',active);
+    });
+  };
+  const step=now=>{
+    if(stopped)return;
+    const elapsed=(now-start)%cycle;
+    const y=-(elapsed/cycle)*50;
+    list.style.transform=`translate3d(0,${y}%,0)`;
+    markActive();
+    frame=requestAnimationFrame(step);
+  };
+  frame=requestAnimationFrame(step);
+  return()=>{stopped=true;cancelAnimationFrame(frame)};
+}
+function animateProgress(el,targetGetter,{minMs=2800,maxMs=10000}={}){
+  return new Promise(resolve=>{
+    const start=performance.now();
+    const tick=now=>{
+      const elapsed=now-start;
+      const asset=Math.min(1,Math.max(0,targetGetter()));
+      const time=easeOutCubic(Math.min(1,elapsed/minMs));
+      let value=Math.min(.97,time*.72+asset*.25);
+      if((asset>=1&&elapsed>=minMs)||elapsed>=maxMs)value=1;
+      el.textContent=value>=1?'( done )':`( ${Math.round(value*100)}% )`;
+      if(value>=1)resolve();
+      else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+async function runEmotionPreloader(){
+  const root=document.querySelector('.preloader');
+  if(!root)return;
+  const progressEl=root.querySelector('.preloader-progress');
+  const textEl=root.querySelector('.preloader-text');
+  const stopScroll=startStatusScroller(root);
+  decodeLoaderText(textEl,{delay:100,withCursor:true});
+
+  let assetProgress=0;
+  const images=[...document.querySelectorAll('.hero img')];
+  const fontsReady=Promise.allSettled([
+    document.fonts.load('700 96px Benzin'),
+    document.fonts.load('600 16px Sonko'),
+    document.fonts.load('400 16px Sonko'),
+    document.fonts.load('500 12px "IBM Plex Mono"')
+  ]).then(()=>{assetProgress=Math.max(assetProgress,.55)});
+  const imagesReady=Promise.allSettled(images.map(img=>img.decode().catch(()=>{}))).then(()=>{assetProgress=Math.max(assetProgress,.9)});
+  Promise.all([fontsReady,imagesReady]).then(()=>{assetProgress=1});
+
+  if(reduced){
+    progressEl.textContent='( done )';
+    assetProgress=1;
+  }else{
+    await animateProgress(progressEl,()=>assetProgress,{minMs:2800,maxMs:10000});
+  }
+  clearTimeout(window._loaderFallback);
+  await wait(reduced?0:400);
+  stopScroll();
+  root.dataset.phase='done';
+  const loadingBits=[...root.querySelectorAll('.preloader-item,.preloader-progress,.preloader-text')];
+  await Promise.all(loadingBits.map(el=>el.animate([
+    {opacity:1,transform:'scale(1)'},
+    {opacity:0,transform:'scale(1.05)'}
+  ],{duration:reduced?1:280,fill:'forwards',easing:'ease'}).finished.catch(()=>{})));
+}
+async function dismissPreloader(){
+  const root=document.querySelector('.preloader');
+  if(!root)return;
+  root.classList.add('is-exit');
+  await wait(reduced?0:280);
+  document.documentElement.classList.remove('loading');
+  root.remove();
+}
+// Reveal the page after the branded Emotion-style loader finishes (no audio gate).
 async function bootSite(){
-  const images=[...document.querySelectorAll('.hero img')].map(img=>img.decode().catch(()=>{}));
-  const fonts=Promise.allSettled([document.fonts.load('700 96px Benzin'),document.fonts.load('600 16px Sonko'),document.fonts.load('400 16px Sonko')]);
-  let timeout;
-  await Promise.race([Promise.allSettled([...images,fonts]),new Promise(resolve=>{timeout=setTimeout(resolve,10000)})]);
-  clearTimeout(timeout);clearTimeout(window._loaderFallback);
   const hero=document.querySelector('.hero');hero.inert=true;
   const brand=[hero.querySelector('.brand h1'),hero.querySelector('.brand p')];
   const blocks=[...hero.querySelectorAll('.intro,.services,.navigation,.sound,footer')]
@@ -61,23 +220,26 @@ async function bootSite(){
   const layers=[...brand,...blocks];
   const sliderLayers=[...hero.querySelectorAll('.thumbnails,.project-card')];
   [...layers,...sliderLayers].forEach(el=>{el.style.visibility='hidden'});
-  document.documentElement.classList.remove('loading');
-  document.querySelector('.preloader').remove();
+  try{await runEmotionPreloader()}catch(error){console.error(error);clearTimeout(window._loaderFallback)}
+  updateSound();
+  await dismissPreloader();
   try{
-    await Promise.all([assembleFirstSlide(),revealLayer(hero.querySelector('.project-card'))]);
+    // First screen: every hero element starts and finishes together (shared 600ms).
     document.documentElement.classList.remove('slide-pending');
-    for(const layer of layers)await revealLayer(layer);
-    await assembleThumbnails();
+    const duration=window.SITE_CONTENT.effects.heroTextMs;
+    const card=hero.querySelector('.project-card');
+    await Promise.all([
+      assembleFirstSlide(),
+      card?revealLayer(card,duration):Promise.resolve(),
+      ...layers.map(layer=>revealLayer(layer,duration)),
+      assembleThumbnails()
+    ]);
   }
   finally{hero.inert=false;document.documentElement.classList.remove('slide-pending')}
-
 }
-let enabled=true,unlocked=false,lastSound=0;try{enabled=localStorage.getItem('andreiko-sound')!=='off'}catch{}
-const taps=Array.from({length:5},(_,i)=>{let a=new Audio(`assets/tap_0${i+1}.mp3`);a.volume=.15;a.preload='auto';return a});
-function sound(){if(!enabled||!unlocked)return;if(performance.now()-lastSound<65)return;lastSound=performance.now();const a=taps[Math.floor(Math.random()*taps.length)].cloneNode();a.volume=.15;a.play().catch(()=>{})}
 document.addEventListener('pointerdown',()=>{unlocked=true},{once:true});document.addEventListener('keydown',()=>{unlocked=true},{once:true});
 document.querySelectorAll('button,a').forEach(el=>{el.addEventListener('pointerenter',()=>{sound();if(el.classList.contains('fx'))reveal(el)});el.addEventListener('focus',()=>{if(el.classList.contains('fx'))reveal(el)})});
-const soundBtn=document.querySelector('.sound');function updateSound(){soundBtn.dataset.ready='';soundBtn.textContent=enabled?'Звук [ вкл ]':'Звук [ выкл ]';soundBtn.setAttribute('aria-pressed',enabled);soundBtn.setAttribute('aria-label',enabled?'Выключить звук':'Включить звук');prepare(soundBtn)}updateSound();soundBtn.onclick=()=>{enabled=!enabled;try{localStorage.setItem('andreiko-sound',enabled?'on':'off')}catch{}updateSound()};
+updateSound();
 const thumbs=[...document.querySelectorAll('.thumb')],project=document.querySelector('#project'),card=document.querySelector('.project-card'),viewer=document.querySelector('#viewer');let current=window.SITE_CONTENT.hero.initialSlide;
 const pixelCanvas=document.createElement('canvas');pixelCanvas.className='pixel-transition';pixelCanvas.hidden=true;pixelCanvas.setAttribute('aria-hidden','true');project.after(pixelCanvas);
 const pixelContext=pixelCanvas.getContext('2d');
@@ -107,7 +269,7 @@ async function assembleFirstSlide(){
     slideFrame=requestAnimationFrame(frame);
   });
 }
-// Resolve the thumbnail switcher from coarse pixels after all hero text.
+// Resolve the thumbnail switcher from coarse pixels (runs with the shared hero reveal).
 async function assembleThumbnails(){
   const switcher=document.querySelector('.thumbnails');
   if(reduced){switcher.style.visibility='visible';return}
