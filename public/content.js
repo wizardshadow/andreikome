@@ -1,5 +1,5 @@
 (() => {
-  const c=window.SITE_CONTENT||structuredClone(window.SITE_DEFAULTS);window.SITE_CONTENT=c;
+  const c=window.normalizeSiteContent(window.SITE_CONTENT||structuredClone(window.SITE_DEFAULTS));window.SITE_CONTENT=c;
   const q=s=>document.querySelector(s),all=s=>[...document.querySelectorAll(s)],text=(s,value)=>{const el=typeof s==='string'?q(s):s;if(el)el.textContent=value??''};
   const el=(tag,className,value)=>{const node=document.createElement(tag);if(className)node.className=className;if(value!==undefined)node.textContent=value;return node};
   document.title=c.meta.title;q('meta[name="description"]').content=c.meta.description;
@@ -46,6 +46,13 @@
       });
     }
     processSection.hidden=!c.visibility.process;
+  }
+  const aboutSection=q('#about');
+  if(aboutSection){
+    aboutSection.hidden=!c.visibility.about;
+    aboutSection.style.setProperty('--about-accent',c.about.accent);
+    const portrait=aboutSection.querySelector('.about-photo img');portrait.src=c.about.image;portrait.alt=c.about.imageAlt;
+    aboutSection.querySelectorAll('[data-about]').forEach(node=>{node.textContent=c.about[node.dataset.about]??''});
   }
   const faqSection=q('#faq');
   if(faqSection&&c.faq){

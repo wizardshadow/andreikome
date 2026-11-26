@@ -3,7 +3,9 @@ const json=(data,status=200,extra={})=>new Response(JSON.stringify(data),{status
 const failure=(message,status=400)=>{throw Object.assign(new Error(message),{status})};
 const cleanPath=pathname=>decodeURIComponent(pathname).replace(/^\//,'');
 function allowedUrl(value){if(!value)return true;if(/[\x00-\x20<>"'\\]/.test(value)||value.startsWith('//'))return false;try{const u=new URL(value,'https://local.invalid');if(u.protocol==='https:')return !decodeURIComponent(u.pathname).split('/').includes('..');return u.protocol==='mailto:'||u.protocol==='tel:'}catch{return false}}
+function withAbout(input){return {...input,about:{...DEFAULT_CONTENT.about,...input.about},visibility:{...DEFAULT_CONTENT.visibility,...input.visibility}}}
 function validateContent(input){
+  input=withAbout(input);
   const maxArrays={services:12,navigation:8,slides:20,socials:12,directions:8,items:30};
   function visit(value,template,path){
     if(Array.isArray(template)){if(!Array.isArray(value)||value.length>(maxArrays[path.split('.').at(-1)]||30))failure('Некорректный список: '+path);return value.map((v,i)=>visit(v,template[0],path+'.'+i))}
@@ -12,7 +14,7 @@ function validateContent(input){
     if(typeof value==='string'){
       if(value.length>12000)failure('Слишком длинный текст: '+path);
       if(/\.(image|thumbnail|cardImage|preview|video|portrait|cursor|telegram|caseUrl|url)$/.test(path)&&!allowedUrl(value))failure('Недопустимая ссылка: '+path);
-      if(path==='meta.accent'&&!/^#[0-9a-f]{6}$/i.test(value))failure('Цвет должен иметь формат #RRGGBB');
+      if((path==='meta.accent'||path==='about.accent')&&!/^#[0-9a-f]{6}$/i.test(value))failure('Цвет должен иметь формат #RRGGBB');
     }
     if(typeof value==='number'){
       if(!Number.isFinite(value))failure('Некорректное число: '+path);
@@ -32,8 +34,8 @@ function admin(request){const user=identity(request);if(!user)failure('Войд�
 function sameOrigin(request){if(request.headers.get('Origin')!==new URL(request.url).origin)failure('Недопустимый источник запроса',403)}
 function bucket(env){if(!env.BUCKET)failure('Хранилище контента не подключено',503);return env.BUCKET}
 async function readRecord(store,key){const obj=await store.get(key);return obj?{object:obj,data:await obj.json()}:null}
-async function published(env){const value=env.BUCKET?await readRecord(env.BUCKET,'cms/published.json'):null;return value?.data||{revision:null,createdAt:null,content:DEFAULT_CONTENT}}
-async function snapshot(env){const store=bucket(env),live=await published(env),draft=await readRecord(store,'cms/draft.json');return{draft:draft?.data||{revision:null,createdAt:null,content:live.content},published:{revision:live.revision,createdAt:live.createdAt}}}
+async function published(env){const value=env.BUCKET?await readRecord(env.BUCKET,'cms/published.json'):null;return value?.data?{...value.data,content:withAbout(value.data.content)}:{revision:null,createdAt:null,content:DEFAULT_CONTENT}}
+async function snapshot(env){const store=bucket(env),live=await published(env),draft=await readRecord(store,'cms/draft.json');return{draft:draft?.data?{...draft.data,content:withAbout(draft.data.content)}:{revision:null,createdAt:null,content:live.content},published:{revision:live.revision,createdAt:live.createdAt}}}
 async function saveDraft(store,content,baseRevision,user){const previous=await readRecord(store,'cms/draft.json');if((previous?.data.revision||null)!==(baseRevision||null))failure('Черновик изменён в другой вкладке. Обновите страницу перед сохранением.',409);const draft={revision:crypto.randomUUID(),createdAt:new Date().toISOString(),actor:user.id,content:validateContent(content)};const result=await store.put('cms/draft.json',JSON.stringify(draft),{httpMetadata:{contentType:'application/json'},onlyIf:previous?{etagMatches:previous.object.etag}:{etagDoesNotMatch:'*'}});if(!result)failure('Черновик изменён параллельно. Обновите страницу.',409);return draft}
 function safeJson(value){return JSON.stringify(value).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')}
 function pageHtml(content){return STATIC_ASSETS['index.html'].body.replace('<!-- cms-content -->','<script>window.SITE_CONTENT='+safeJson(content)+'</script>')}
