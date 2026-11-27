@@ -15,7 +15,7 @@ function prepare(el){
   el.dataset.original=text;el.setAttribute('aria-label',text);el.dataset.ready='1';el.textContent='';
   text.split(/(\s+)/u).filter(Boolean).forEach(token=>{
     if(/^\s+$/u.test(token)){
-      if (el.hasAttribute('data-about')) {
+      if (el.matches('[data-about], .work-description')) {
         el.append(token);
         return;
       }

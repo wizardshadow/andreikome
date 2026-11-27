@@ -3,7 +3,7 @@
   const q=s=>document.querySelector(s),all=s=>[...document.querySelectorAll(s)],text=(s,value)=>{const el=typeof s==='string'?q(s):s;if(el)el.textContent=value??''};
   const el=(tag,className,value)=>{const node=document.createElement(tag);if(className)node.className=className;if(value!==undefined)node.textContent=value;return node};
   document.title=c.meta.title;q('meta[name="description"]').content=c.meta.description;
-  const root=document.documentElement;root.style.setProperty('--accent',c.meta.accent);root.style.setProperty('--grain-opacity',c.effects.grainOpacity);root.style.setProperty('--grain-reduced-opacity',c.effects.grainOpacity*.5294);root.style.setProperty('--video-scale',c.effects.videoScale+'%');root.style.setProperty('--video-inset',(100-c.effects.videoScale)/2+'%');root.style.setProperty('--video-dim',c.effects.videoDim/100);
+  const root=document.documentElement;root.style.setProperty('--accent',c.meta.accent);root.style.setProperty('--grain-opacity',c.effects.grainOpacity);root.style.setProperty('--grain-reduced-opacity',c.effects.grainOpacity*.5294);root.style.setProperty('--video-scale',c.effects.videoScale+'%');root.style.setProperty('--video-dim',c.effects.videoDim/100);
   root.style.setProperty('--site-cursor','url('+JSON.stringify(c.effects.cursor)+')');
   text('.brand h1',c.hero.brand);text('.brand p',c.hero.agency);text('.intro',c.hero.intro);text('footer .details span:nth-child(1)',c.hero.footerLocation);text('footer .details span:nth-child(2)',c.hero.footerSince);
   const panels={};

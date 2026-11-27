@@ -11,8 +11,9 @@
     const bounds=frame.getBoundingClientRect();if(!bounds.width||!bounds.height)return false;
     const block=1+47*Math.pow(entering?1-progress:progress,2);
     canvas.width=Math.max(1,Math.ceil(bounds.width*videoScale/block));canvas.height=Math.max(1,Math.ceil(bounds.height*videoScale/block));
-    const scale=Math.max(canvas.width/video.videoWidth,canvas.height/video.videoHeight);
-    const width=video.videoWidth*scale,height=video.videoHeight*scale;
+    const videoBounds=video.getBoundingClientRect();
+    const width=videoBounds.width*canvas.width/(bounds.width*videoScale);
+    const height=videoBounds.height*canvas.height/(bounds.height*videoScale);
     context.drawImage(video,(canvas.width-width)/2,(canvas.height-height)/2,width,height);
     // Clear whole pixel cells, leaving the parallax poster visible underneath.
     const coverage=entering?progress:1-progress;
@@ -79,7 +80,10 @@
     try{await document.fonts.ready;await Promise.all(layers.map((layer,i)=>{
       const texts=layer.matches('.fx')?[layer]:[...layer.querySelectorAll('.fx')];
       const ready=texts.map(el=>reveal(el,i*70,window.SITE_CONTENT.effects.workTextMs));layer.style.visibility='visible';return Promise.all(ready);
-    }))}finally{state.card.classList.remove('text-pending')}
+    }))}finally{
+      settleReveal(state.card.querySelector('.work-description'));
+      state.card.classList.remove('text-pending');
+    }
   }
   // Only the closest frame inside the central focus zone may play.
   function updateFocus(){
