@@ -5,6 +5,7 @@ import os
 import ssl
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote
@@ -40,31 +41,29 @@ def ensure_directory(ftp, directory):
         ftp.cwd(str(directory))
 
 
-def remote_digest(ftp, name):
-    digest = hashlib.sha256()
-    try:
-        ftp.retrbinary(f"RETR {name}", digest.update)
-    except ftplib.error_perm as error:
-        if str(error).startswith("550"):
-            return None
-        raise
-    return digest.hexdigest()
-
-
-def upload(host, user, password, source, destination):
+def transfer(host, user, password, destination, *options, output=None):
     credentials = json.dumps(f"{user}:{password}", ensure_ascii=False)
-    result = subprocess.run(
+    return subprocess.run(
         [
             "curl", "--disable", "--config", "-", "--ssl-reqd", "--silent",
             "--show-error", "--connect-timeout", "20", "--max-time", "90",
-            "--upload-file", str(source),
+            *options,
             f"ftp://{host}/%2F{quote(destination.as_posix().lstrip('/'))}",
         ],
-        input=f"user = {credentials}\n",
-        text=True,
+        input=f"user = {credentials}\n".encode("utf-8"),
+        stdout=output,
     )
-    if result.returncode:
-        raise OSError(f"FTPS upload failed for {source} (curl exit {result.returncode})")
+
+
+def remote_digest(host, user, password, path):
+    with tempfile.TemporaryFile() as data:
+        result = transfer(host, user, password, path, output=data)
+        if result.returncode == 78:
+            return None
+        if result.returncode:
+            raise OSError(f"FTPS read failed for {path} (curl exit {result.returncode})")
+        data.seek(0)
+        return hashlib.file_digest(data, "sha256").hexdigest()
 
 
 def publish(ftp, files, release_id, host, user, password):
@@ -79,13 +78,16 @@ def publish(ftp, files, release_id, host, user, password):
             if not str(error).startswith("550"):
                 raise
             remote_size = None
-        if remote_size == source.stat().st_size and remote_digest(ftp, relative.name) == digest:
+        if remote_size == source.stat().st_size and remote_digest(host, user, password, directory / relative.name) == digest:
             continue
 
         temporary = f".{relative.name}.{release_id}.upload"
         print(f"Uploading {relative}", flush=True)
-        upload(host, user, password, source, directory / temporary)
-        if remote_digest(ftp, temporary) != digest:
+        remote_temp = directory / temporary
+        result = transfer(host, user, password, remote_temp, "--upload-file", str(source))
+        if result.returncode:
+            raise OSError(f"FTPS upload failed for {source} (curl exit {result.returncode})")
+        if remote_digest(host, user, password, remote_temp) != digest:
             raise RuntimeError(f"Uploaded file failed verification: {relative}")
         ftp.rename(temporary, relative.name)
         print(f"Published {relative}", flush=True)
