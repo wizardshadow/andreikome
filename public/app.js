@@ -221,7 +221,7 @@ async function bootSite(){
   const brand=[hero.querySelector('.brand h1'),hero.querySelector('.brand p')];
   const blocks=[...hero.querySelectorAll('.intro,.services,.navigation,.sound,footer')]
     .sort((a,b)=>{const ar=a.getBoundingClientRect(),br=b.getBoundingClientRect();return ar.top-br.top||ar.left-br.left});
-  const layers=[...brand,...blocks];
+  const layers=[hero.querySelector('.brand .header-logo'),...brand,...blocks];
   const sliderLayers=[...hero.querySelectorAll('.thumbnails,.project-card')];
   [...layers,...sliderLayers].forEach(el=>{el.style.visibility='hidden'});
   try{await runEmotionPreloader()}catch(error){console.error(error);clearTimeout(window._loaderFallback)}
@@ -557,13 +557,18 @@ function initFooterDecoder() {
 
 initFooterDecoder();
 
-function initMobileMenu() {
-  const header = document.querySelector('.hero-header');
+function initStickyHeader() {
+  const header = document.querySelector('.sticky-header');
   if (!header) return;
 
   const toggle = header.querySelector('.hero-menu-toggle');
-  const navigation = header.querySelector('.navigation');
+  const menu = header.querySelector('.sticky-menu');
+  const brand = document.querySelector('.hero-header .brand');
   const mobile = matchMedia('(max-width: 900px)');
+
+  function updateHeader() {
+    header.classList.toggle('is-stuck', !mobile.matches && brand.getBoundingClientRect().bottom <= 0);
+  }
 
   function setMenu(open) {
     header.classList.toggle('is-menu-open', open);
@@ -576,7 +581,13 @@ function initMobileMenu() {
   }
 
   toggle.addEventListener('click', () => setMenu(!isOpen()));
-  mobile.addEventListener('change', () => setMenu(false));
+  mobile.addEventListener('change', () => {
+    setMenu(false);
+    updateHeader();
+  });
+  window.addEventListener('scroll', updateHeader, {passive:true});
+  window.addEventListener('resize', updateHeader);
+  updateHeader();
 
   document.addEventListener('pointerdown', event => {
     if (isOpen() && !header.contains(event.target)) setMenu(false);
@@ -588,21 +599,23 @@ function initMobileMenu() {
     toggle.focus({ preventScroll: true });
   });
 
-  navigation.addEventListener('click', event => {
-    if (!isOpen() || !event.target.closest('button')) return;
+  menu.addEventListener('click', event => {
+    const control = event.target.closest('button,a');
+    if (!isOpen() || !control) return;
     setMenu(false);
     const dialog = document.querySelector('dialog[open]');
     if (dialog) {
       dialog.addEventListener('close', () => {
         if (mobile.matches) toggle.focus({ preventScroll: true });
       }, { once: true });
-    } else {
+    } else if(control.tagName==='BUTTON') {
       toggle.focus({ preventScroll: true });
     }
   });
+  header.querySelector('.sticky-home').addEventListener('click', () => setMenu(false));
 }
 
-initMobileMenu();
+initStickyHeader();
 
 
 // Cached film-grain tiles: animate without regenerating a full-screen ImageData.

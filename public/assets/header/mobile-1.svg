@@ -1,0 +1,20 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="33.2705" height="23.3367" viewBox="0 0 33.2705 23.3367" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Mask group">
+<mask id="mask0_0_11" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="34" height="24">
+<path id="a" d="M33.2705 23.3367H25.418L23.242 19.3316H10.0285L7.85247 23.3367H0L12.6459 0H20.6246L33.2705 23.3367ZM16.651 7.12714L12.8667 14.0651H20.4038L16.651 7.12714Z" fill="#DED9CD"/>
+</mask>
+<g mask="url(#mask0_0_11)">
+<g id="Vector">
+<path d="M-9.19796 20.7087H44.6761V22.0227H-9.19796V20.7087Z" fill="#DED9CD"/>
+<path d="M-9.19796 18.0807H44.6761V19.3947H-9.19796V18.0807Z" fill="#DED9CD"/>
+<path d="M-9.19796 15.4527H44.6761V16.7667H-9.19796V15.4527Z" fill="#DED9CD"/>
+<path d="M-9.19796 12.8247H44.6761V14.1387H-9.19796V12.8247Z" fill="#DED9CD"/>
+<path d="M-9.19796 10.1967H44.6761V11.5107H-9.19796V10.1967Z" fill="#DED9CD"/>
+<path d="M-9.19796 7.56865H44.6761V8.88265H-9.19796V7.56865Z" fill="#DED9CD"/>
+<path d="M-9.19796 4.94065H44.6761V6.25465H-9.19796V4.94065Z" fill="#DED9CD"/>
+<path d="M-9.19796 2.31265H44.6761V3.62665H-9.19796V2.31265Z" fill="#DED9CD"/>
+<path d="M-9.19796 -0.315354H44.6761V0.998647H-9.19796V-0.315354Z" fill="#DED9CD"/>
+</g>
+</g>
+</g>
+</svg>

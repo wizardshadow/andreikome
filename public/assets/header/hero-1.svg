@@ -1,0 +1,20 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="50.64" height="35.52" viewBox="0 0 50.64 35.52" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Mask group">
+<mask id="mask0_0_7" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="51" height="36">
+<path id="a" d="M50.64 35.52H38.688L35.376 29.424H15.264L11.952 35.52H0L19.248 0H31.392L50.64 35.52ZM25.344 10.848L19.584 21.408H31.056L25.344 10.848Z" fill="#DED9CD"/>
+</mask>
+<g mask="url(#mask0_0_7)">
+<g id="Vector">
+<path d="M-14 31.52H68V33.52H-14V31.52Z" fill="#DED9CD"/>
+<path d="M-14 27.52H68V29.52H-14V27.52Z" fill="#DED9CD"/>
+<path d="M-14 23.52H68V25.52H-14V23.52Z" fill="#DED9CD"/>
+<path d="M-14 19.52H68V21.52H-14V19.52Z" fill="#DED9CD"/>
+<path d="M-14 15.52H68V17.52H-14V15.52Z" fill="#DED9CD"/>
+<path d="M-14 11.52H68V13.52H-14V11.52Z" fill="#DED9CD"/>
+<path d="M-14 7.51999H68V9.51999H-14V7.51999Z" fill="#DED9CD"/>
+<path d="M-14 3.51999H68V5.51999H-14V3.51999Z" fill="#DED9CD"/>
+<path d="M-14 -0.480011H68V1.51999H-14V-0.480011Z" fill="#DED9CD"/>
+</g>
+</g>
+</g>
+</svg>
