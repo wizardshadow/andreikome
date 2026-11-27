@@ -424,52 +424,80 @@ function initFooterDecoder() {
   if (!button) return;
 
   const text = button.querySelector('span');
-  const encoded = text.textContent.trim();
-  const decoded = new TextDecoder().decode(Uint8Array.from(atob(encoded), char => char.charCodeAt(0)));
-  button.dataset.encoded = encoded;
+  const encoded = Array.from(text.textContent.trim());
+  const decoded = new TextDecoder().decode(Uint8Array.from(atob(encoded.join('')), char => char.charCodeAt(0)));
+  const slots = encoded.map(char => {
+    const cell = document.createElement('span');
+    cell.textContent = char;
+    return cell;
+  });
+  text.replaceChildren(...slots);
+  text.classList.add('site-footer-code-slots');
 
+  let clearText = Array.from(decoded);
+  let position = 0;
+  let target = 0;
   let frame;
-  let decodedTarget = false;
+
+  function render() {
+    const edge = position * (slots.length + 12);
+    slots.forEach((cell, index) => {
+      const phase = edge - index;
+      const clear = clearText[index] ?? '';
+      let char = encoded[index];
+      if (phase >= 12) char = clear;
+      else if (phase > 0) char = chars[Math.floor(Math.random() * chars.length)];
+      if (cell.textContent !== char) cell.textContent = char;
+      cell.classList.toggle('is-decoded', phase >= 12);
+      cell.style.opacity = !clear && phase > 0 && phase < 12 ? String(1 - phase / 12) : '';
+    });
+  }
+
+  function wrapDecoded() {
+    const columns = getComputedStyle(text).gridTemplateColumns.split(' ').length;
+    if (columns < 2) return;
+    const aligned = [];
+    for (const word of decoded.split(' ')) {
+      const letters = Array.from(word);
+      const space = aligned.length % columns;
+      if (space && space + letters.length > columns) {
+        aligned.push(...Array(columns - space).fill(' '));
+      }
+      aligned.push(...letters);
+      if (aligned.length % columns) aligned.push(' ');
+    }
+    clearText = aligned;
+    render();
+  }
 
   function update() {
     const showDecoded = button.matches(':hover, :focus-visible');
-    if (showDecoded === decodedTarget) return;
-    decodedTarget = showDecoded;
+    const next = Number(showDecoded);
+    if (target === next) return;
+    target = next;
     cancelAnimationFrame(frame);
-
-    const target = showDecoded ? decoded : encoded;
-    button.classList.toggle('is-decoded', showDecoded);
     button.setAttribute('aria-label', showDecoded ? decoded : 'Зашифрованный текст');
 
     if (reduced) {
-      text.textContent = target;
+      position = target;
+      render();
       return;
     }
 
-    const from = Array.from(text.textContent);
-    const to = Array.from(target);
     const start = performance.now();
-    const duration = 380;
-
+    const from = position;
+    const duration = 380 * Math.abs(target - from);
     function draw(now) {
-      const progress = Math.min(1, (now - start) / duration);
-      if (progress === 1) {
-        text.textContent = target;
-        return;
-      }
-
-      const settled = Math.floor(progress * to.length);
-      const scrambling = Math.ceil(0.12 * to.length);
-      text.textContent = to.map((char, index) => {
-        if (index < settled || /\s/u.test(char)) return char;
-        if (index < settled + scrambling) return chars[Math.floor(Math.random() * chars.length)];
-        return from[index] ?? char;
-      }).join('');
-      frame = requestAnimationFrame(draw);
+      const progress = duration ? Math.min(1, (now - start) / duration) : 1;
+      position = from + (target - from) * progress;
+      render();
+      if (progress < 1) frame = requestAnimationFrame(draw);
     }
     frame = requestAnimationFrame(draw);
   }
 
+  wrapDecoded();
+  if ('ResizeObserver' in window) new ResizeObserver(wrapDecoded).observe(text);
   button.addEventListener('pointerenter', update);
   button.addEventListener('pointerleave', update);
   button.addEventListener('focus', update);

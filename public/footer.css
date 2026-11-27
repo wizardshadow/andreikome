@@ -85,20 +85,15 @@
   overflow-wrap: anywhere;
 }
 
-/* Keep the hover target the same size after the shorter message appears. */
-.site-footer-code > span,
-.site-footer-code::after {
-  grid-area: 1 / 1;
+/* Each character keeps its grid cell, even after the glyph disappears. */
+.site-footer-code-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, calc(1ch + .02125cqw));
+  grid-auto-rows: 1lh;
   min-width: 0;
 }
 
-.site-footer-code::after {
-  content: attr(data-encoded);
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.site-footer .site-footer-code.is-decoded {
+.site-footer-code-slots .is-decoded {
   color: #ded9cd;
 }
 
