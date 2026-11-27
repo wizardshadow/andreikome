@@ -27,7 +27,7 @@ def release_files():
     # The PHP host serves the admin UI from /cpanel/ as well as /admin.html.
     files[PurePosixPath("cpanel/index.html")] = files[PurePosixPath("admin.html")]
     index = PurePosixPath("index.html")
-    return sorted(files.items(), key=lambda item: (item[0] == index, item[0]))
+    return sorted(files.items(), key=lambda item: (item[0] == index, item[0].suffix == ".html", item[0]))
 
 
 def ensure_directory(ftp, directory):
@@ -55,9 +55,24 @@ def transfer(host, user, password, destination, *options, output=None):
     )
 
 
+def download(host, user, password, path, output):
+    offset = 0
+    for _ in range(4):
+        resume = ("--continue-at", str(offset)) if offset else ()
+        # Some FTPS reads stall after returning part of a file.
+        result = transfer(host, user, password, path, "--speed-limit", "1", "--speed-time", "15", *resume, output=output)
+        if result.returncode not in (18, 28, 56):
+            return result
+        previous = offset
+        offset = output.seek(0, os.SEEK_END)
+        if offset <= previous:
+            return result
+    return result
+
+
 def remote_digest(host, user, password, path):
     with tempfile.TemporaryFile() as data:
-        result = transfer(host, user, password, path, output=data)
+        result = download(host, user, password, path, data)
         if result.returncode == 78:
             return None
         if result.returncode:
@@ -111,7 +126,7 @@ def publish_cms_content(ftp, relative, payload, expected_digest, release_id, hos
 def migrate_cms_slide_links(ftp, relative, release_id, host, user, password):
     remote_path = PurePosixPath("/") / relative
     with tempfile.TemporaryFile() as public_file:
-        result = transfer(host, user, password, remote_path, output=public_file)
+        result = download(host, user, password, remote_path, public_file)
         if result.returncode:
             raise OSError(f"Could not read public CMS data (curl exit {result.returncode})")
         public_file.seek(0)
@@ -134,7 +149,7 @@ def restore_cms_content(ftp, relative, default_digest, release_id, host, user, p
     # The PHP CMS records the published content independently of that file.
     published_path = PurePosixPath("/cms/published.json")
     with tempfile.TemporaryFile() as record:
-        result = transfer(host, user, password, published_path, output=record)
+        result = download(host, user, password, published_path, record)
         if result.returncode == 78:
             return
         if result.returncode:
