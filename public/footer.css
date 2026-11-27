@@ -9,7 +9,7 @@
   display: grid;
   grid-template-columns: 34.8958cqw minmax(0, 1fr) auto;
   min-height: 20.8333cqw;
-  padding: 3.6979cqw 5.2083cqw;
+  padding: 3.6979cqw var(--page-gutter);
 }
 
 .site-footer p { margin: 0; }
@@ -126,7 +126,7 @@
   justify-content: space-between;
   gap: 6px 12px;
   min-height: max(40px, 2.6042cqw);
-  padding: 10px 5.2083cqw;
+  padding: 10px var(--page-gutter);
   background: #ded9cd;
   color: #ff4500;
   font-size: clamp(10px, .7292cqw, 16px);
@@ -138,7 +138,7 @@
   .site-footer-main {
     grid-template-columns: minmax(0, 1fr) auto;
     column-gap: 12px;
-    padding: 36px 24px;
+    padding-block: 36px;
   }
 
   .site-footer-email, .site-footer-telegram { margin-top: 16px; }
@@ -174,7 +174,6 @@
 
   .site-footer .site-footer-bar {
     justify-content: center;
-    padding-inline: 24px;
     text-align: center;
   }
 }
