@@ -1,11 +1,13 @@
 import ftplib
 import hashlib
+import json
 import os
 import ssl
 import subprocess
 import sys
 import time
 from pathlib import Path, PurePosixPath
+from urllib.parse import quote
 from urllib.request import urlopen
 
 
@@ -49,7 +51,23 @@ def remote_digest(ftp, name):
     return digest.hexdigest()
 
 
-def publish(ftp, files, release_id):
+def upload(host, user, password, source, destination):
+    credentials = json.dumps(f"{user}:{password}", ensure_ascii=False)
+    result = subprocess.run(
+        [
+            "curl", "--disable", "--config", "-", "--ssl-reqd", "--silent",
+            "--show-error", "--connect-timeout", "20", "--max-time", "90",
+            "--upload-file", str(source),
+            f"ftp://{host}/%2F{quote(destination.as_posix().lstrip('/'))}",
+        ],
+        input=f"user = {credentials}\n",
+        text=True,
+    )
+    if result.returncode:
+        raise OSError(f"FTPS upload failed for {source} (curl exit {result.returncode})")
+
+
+def publish(ftp, files, release_id, host, user, password):
     for relative, source in files:
         directory = PurePosixPath("/") / relative.parent
         ensure_directory(ftp, directory)
@@ -65,8 +83,8 @@ def publish(ftp, files, release_id):
             continue
 
         temporary = f".{relative.name}.{release_id}.upload"
-        with source.open("rb") as data:
-            ftp.storbinary(f"STOR {temporary}", data)
+        print(f"Uploading {relative}", flush=True)
+        upload(host, user, password, source, directory / temporary)
         if remote_digest(ftp, temporary) != digest:
             raise RuntimeError(f"Uploaded file failed verification: {relative}")
         ftp.rename(temporary, relative.name)
@@ -96,7 +114,7 @@ def main():
                 ftp.login(user, password)
                 ftp.prot_p()
                 ftp.voidcmd("TYPE I")
-                publish(ftp, files, release_id)
+                publish(ftp, files, release_id, host, user, password)
             break
         except (OSError, EOFError, ftplib.error_temp):
             if attempt == 2:
