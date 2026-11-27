@@ -11,7 +11,7 @@
   const TEXT_SEL='.process-card-base .process-index,.process-card-base .process-card-title,.process-card-base .process-card-copy,.process-card-base .process-card-days';
 
   let x=0,vx=0,dragging=false,lastX=0,lastT=0,raf=0,moved=0;
-  let pressCard=null,tapped=null,wheelTimer=0;
+  let pressCard=null,tapped=null,wheelTimer=0,wheelStartSnap=0;
 
   function maxOffset(){
     return Math.max(0,track.scrollWidth-rail.clientWidth);
@@ -21,14 +21,14 @@
     const gap=parseFloat(getComputedStyle(track).columnGap||getComputedStyle(track).gap)||0;
     return Math.max(1,cards[0].offsetWidth+gap);
   }
-  function nearestSnap(){
+  function nearestSnap(position=x){
     const max=maxOffset();
     const s=stride();
     let best=0,bestDist=Infinity;
     const candidates=new Set([0,-max]);
     for(let i=0;i<cards.length;i++)candidates.add(Math.max(-max,Math.min(0,-i*s)));
     for(const candidate of candidates){
-      const dist=Math.abs(candidate-x);
+      const dist=Math.abs(candidate-position);
       if(dist<bestDist){bestDist=dist;best=candidate}
     }
     return best;
@@ -45,10 +45,10 @@
   function stopRaf(){
     if(raf){cancelAnimationFrame(raf);raf=0}
   }
-  function tick(){
+  function tick(snapTarget){
     if(dragging){raf=0;return}
     const max=maxOffset();
-    const target=nearestSnap();
+    const target=snapTarget??nearestSnap();
     if(Math.abs(vx)>0.45){
       x+=vx;
       vx*=0.945;
@@ -66,21 +66,27 @@
       x+=dx*0.18;
     }
     applyTransform();
-    raf=requestAnimationFrame(tick);
+    raf=requestAnimationFrame(()=>tick(snapTarget));
   }
-  function startSettle(){
+  function startSettle(snapTarget){
     if(reduced){
-      x=nearestSnap();
+      x=snapTarget??nearestSnap();
       vx=0;
       applyTransform();
       return;
     }
     stopRaf();
-    raf=requestAnimationFrame(tick);
+    raf=requestAnimationFrame(()=>tick(snapTarget));
+  }
+
+  function cancelWheelSettle(){
+    clearTimeout(wheelTimer);
+    wheelTimer=0;
   }
 
   function onPointerDown(event){
     if(event.button!=null&&event.button!==0)return;
+    cancelWheelSettle();
     dragging=true;moved=0;rail.classList.add('is-dragging');
     vx=0;stopRaf();
     lastX=event.clientX;lastT=performance.now();
@@ -118,16 +124,31 @@
   rail.addEventListener('pointercancel',onPointerUp);
   rail.addEventListener('lostpointercapture',()=>{dragging=false;rail.classList.remove('is-dragging');pressCard=null});
   rail.addEventListener('wheel',event=>{
-    if(Math.abs(event.deltaX)<Math.abs(event.deltaY)&&!event.shiftKey)return;
+    if(event.ctrlKey||dragging||!event.cancelable)return;
+    const unit=event.deltaMode===1?16:event.deltaMode===2?rail.clientWidth:1;
+    const delta=(Math.abs(event.deltaX)>Math.abs(event.deltaY)?event.deltaX:event.deltaY)*unit;
+    const max=maxOffset();
+    if(!delta||!max||(delta<0&&x>=0)||(delta>0&&x<=-max))return;
+
     event.preventDefault();
     stopRaf();
-    x=rubber(x-(event.deltaX||event.deltaY));
+    const initialSnap=wheelTimer?wheelStartSnap:nearestSnap();
+    x=Math.max(-max,Math.min(0,x-delta));
     vx=0;
     applyTransform();
-    clearTimeout(wheelTimer);
-    wheelTimer=setTimeout(startSettle,90);
+    cancelWheelSettle();
+    wheelStartSnap=initialSnap;
+    wheelTimer=setTimeout(()=>{
+      wheelTimer=0;
+      const nearest=nearestSnap();
+      // A single wheel notch should reach the next card even when the delta is small.
+      const direction=Math.sign(initialSnap-x);
+      const next=nearestSnap(Math.max(-max,Math.min(0,initialSnap-direction*stride())));
+      startSettle(nearest===initialSnap?next:nearest);
+    },90);
   },{passive:false});
   window.addEventListener('resize',()=>{
+    cancelWheelSettle();
     x=Math.min(0,Math.max(-maxOffset(),x));
     applyTransform();
     startSettle();
