@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#000000"><meta name="description" content="ANDREIKO — стратегии, брендинг, сайты и маркетинг. Только ручная работа. Без шаблонов."><title>ANDREIKO — Agency</title><script>document.documentElement.classList.add('loading','slide-pending');window._loaderFallback=setTimeout(()=>document.documentElement.classList.remove('loading','slide-pending'),20000)</script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aldrich&family=IBM+Plex+Mono:wght@500&display=swap"><link rel="stylesheet" href="style.css?v=preloader-wrap-1"><link rel="stylesheet" href="about.css?v=5"></head>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#000000"><meta name="description" content="ANDREIKO — стратегии, брендинг, сайты и маркетинг. Только ручная работа. Без шаблонов."><title>ANDREIKO — Agency</title><script>document.documentElement.classList.add('loading','slide-pending');window._loaderFallback=setTimeout(()=>document.documentElement.classList.remove('loading','slide-pending'),20000)</script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aldrich&family=Fira+Code:wght@400&family=IBM+Plex+Mono:wght@500&display=swap"><link rel="stylesheet" href="style.css?v=site-footer-1"><link rel="stylesheet" href="about.css?v=5"><link rel="stylesheet" href="footer.css?v=1"></head>
 <body>
 <div class="preloader" role="status" aria-live="polite" aria-label="Загрузка сайта" data-phase="loading">
   <div class="preloader-container">
@@ -43,7 +43,7 @@
     <button class="thumb" data-project="4" aria-label="Проект 5"><img src="assets/work6.png" alt="SEREPISRO"></button>
   </div>
   <button class="project-card" aria-label="Посмотреть выбранный проект"><img src="assets/work2.png" alt="Infinity Frameworks — selected work"></button>
-  <footer><div class="details"><span class="fx">Worldwide working</span><span class="fx">Est. 2009</span></div><div class="socials"><button class="fx" data-social="X">X</button><button class="fx" data-social="Threads">Threads</button><button class="fx" data-social="LinkedIn">in</button><button class="fx" data-social="E-mail">E-mail</button></div></footer>
+  <footer class="hero-footer"><div class="details"><span class="fx">Worldwide working</span><span class="fx">Est. 2009</span></div><div class="socials"><button class="fx" data-social="X">X</button><button class="fx" data-social="Threads">Threads</button><button class="fx" data-social="LinkedIn">in</button><button class="fx" data-social="E-mail">E-mail</button></div></footer>
   <button class="sound fx" aria-label="Выключить звук" aria-pressed="true">Звук [ вкл ]</button>
 </main>
 <section class="principles" id="principles" aria-labelledby="principles-title">
@@ -192,9 +192,37 @@
   </div>
 </section>
 
+<footer id="site-footer" class="site-footer" aria-label="Контакты агентства">
+  <div class="site-footer-main">
+    <div class="site-footer-contact">
+      <p class="site-footer-label">Разработка лендингов</p>
+      <a class="site-footer-email" href="mailto:info@andreiko.me">info@andreiko.me</a>
+      <a class="site-footer-telegram" href="https://t.me/arturandreiko">
+        <span>@arturandreiko</span>
+        <small>написать мне в телеграм</small>
+      </a>
+      <nav class="site-footer-socials" aria-label="Социальные сети">
+        <button type="button" data-social="LinkedIn" aria-label="LinkedIn">in</button>
+        <button type="button" data-social="X">x</button>
+        <button type="button" data-social="VK" aria-label="ВКонтакте">vk</button>
+      </nav>
+    </div>
+    <div class="site-footer-inquiry">
+      <p class="site-footer-label">Создание уникального дизайн-кода для брендов</p>
+      <p class="site-footer-code" aria-hidden="true">0JvRg9GH0YjQtdC1INCy0YDQtdC80Y8sINGH0YLQvtCx0Ysg0L/QvtGB0LDQtNC40YLRjCDQtNC10YDQtdCy0L4sINCx0YvQu9C+IDIwINC70LXRgiDQvdCw0LfQsNC0LCDQstGC0L7RgNC+0LUg0LvRg9GH0YjQtdC1INCy0YDQtdC80Y8gLSDRgdC10LnRh9Cw0YEh</p>
+      <a class="site-footer-cta" href="https://t.me/arturandreiko">Оставить заявку</a>
+    </div>
+    <p class="site-footer-label site-footer-since">Est. 2009 · RND</p>
+  </div>
+  <p class="site-footer-bar">
+    <span>Стратегия</span><span>+</span><span>Дизайн</span><span>+</span>
+    <span>Разработка под ключ</span><span>=</span><span>Клиенты</span>
+  </p>
+</footer>
+
 <dialog class="works-dialog" id="works-dialog" aria-labelledby="works-dialog-title"><button type="button" class="close fx" aria-label="Закрыть кейс">Закрыть [ × ]</button><div class="works-detail-body"></div></dialog>
 
 <canvas id="grain" aria-hidden="true"></canvas>
 <dialog id="panel"><button class="close fx" aria-label="Закрыть">Закрыть [ × ]</button><div class="panel-content"><p class="eyebrow fx">ANDREIKO / AGENCY</p><h2></h2><p class="panel-copy"></p><a class="contact-link fx" href="https://t.me/arturandreiko" target="_blank" rel="noopener">Написать в Telegram ↗</a></div></dialog>
 <dialog id="viewer"><button class="close fx" aria-label="Закрыть проект">Закрыть [ × ]</button><img alt="Выбранный проект"></dialog>
-<script src="content-defaults.js?v=3"></script><!-- cms-content --><script src="content-schema.js?v=3"></script><script src="content.js"></script><script src="app.js?v=about-reveal-1"></script><script src="works.js"></script><script src="process.js"></script><script src="faq.js"></script></body></html>
+<script src="content-defaults.js?v=3"></script><!-- cms-content --><script src="content-schema.js?v=3"></script><script src="content.js?v=site-footer-1"></script><script src="app.js?v=about-reveal-1"></script><script src="works.js"></script><script src="process.js"></script><script src="faq.js"></script></body></html>

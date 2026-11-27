@@ -17,6 +17,24 @@
   const initial=c.hero.slides[c.hero.initialSlide]||c.hero.slides[0];q('#project').src=initial.image;
   const card=q('.project-card'),cardImage=card.querySelector('img');cardImage.src=initial.cardImage||initial.image;cardImage.alt=initial.title;if(!initial.cardCrop)cardImage.style.cssText='width:100%;height:100%;left:0;top:0;object-fit:cover';card.setAttribute('aria-label','Посмотреть '+initial.title);
   q('.socials').replaceChildren();c.hero.socials.forEach(item=>{const button=el('button','fx',item.label);button.dataset.social=item.label;if(item.url)button.dataset.url=item.url;q('.socials').append(button)});
+  const siteFooter=q('.site-footer');
+  if(siteFooter){
+    const email=siteFooter.querySelector('.site-footer-email');
+    if(c.contacts.email){
+      const address=c.contacts.email.replace(/^mailto:/i,'');
+      email.href='mailto:'+address;
+      email.textContent=address;
+    }
+    if(c.contacts.telegram){
+      siteFooter.querySelector('.site-footer-telegram').href=c.contacts.telegram;
+      siteFooter.querySelector('.site-footer-cta').href=c.contacts.telegram;
+    }
+    for(const button of siteFooter.querySelectorAll('[data-social]')){
+      const labels=[button.dataset.social,button.textContent.trim()].map(label=>label.toLowerCase());
+      const social=c.hero.socials.find(item=>labels.includes(item.label.toLowerCase()));
+      if(social?.url)button.dataset.url=social.url;
+    }
+  }
   text('.principles-label .fx',c.principles.label);const parts=all('.principles-statement>.fx');[c.principles.before,c.principles.highlight,c.principles.after].forEach((value,i)=>text(parts[i],value));
   text('.principles-description',c.principles.description);text('.principles-name',c.principles.name);text('.principles-role',c.principles.role);text('.principles-founder blockquote',c.principles.quote);q('.principles-portrait img').src=c.principles.portrait;q('.principles-portrait img').alt=c.principles.name;
   const directionTemplate=q('.principles-directions button').cloneNode(true);q('.principles-directions').replaceChildren();c.principles.directions.forEach(item=>{const button=directionTemplate.cloneNode(true);text(button.querySelector('span'),item.label);button.dataset.panel=item.title;panels[item.title]=item.body;q('.principles-directions').append(button)});
