@@ -434,22 +434,37 @@ function initFooterDecoder() {
   text.replaceChildren(...slots);
   text.classList.add('site-footer-code-slots');
 
+  const durationMs = 2000;
+  const scrambleWidth = 18;
+  const guesses = encoded.map(original => {
+    const choices = Array.from(chars).filter(char => char !== original);
+    const count = 1 + Math.floor(Math.random() * 3);
+    return Array.from({ length: count }, () => {
+      const index = Math.floor(Math.random() * choices.length);
+      return choices.splice(index, 1)[0];
+    });
+  });
+
   let clearText = Array.from(decoded);
   let position = 0;
   let target = 0;
   let frame;
 
   function render() {
-    const edge = position * (slots.length + 12);
+    const edge = position * (slots.length - 1 + scrambleWidth);
     slots.forEach((cell, index) => {
       const phase = edge - index;
       const clear = clearText[index] ?? '';
       let char = encoded[index];
-      if (phase >= 12) char = clear;
-      else if (phase > 0) char = chars[Math.floor(Math.random() * chars.length)];
+      if (phase >= scrambleWidth) {
+        char = clear;
+      } else if (phase > 0) {
+        const candidates = guesses[index];
+        char = candidates[Math.floor(phase / scrambleWidth * candidates.length)];
+      }
       if (cell.textContent !== char) cell.textContent = char;
-      cell.classList.toggle('is-decoded', phase >= 12);
-      cell.style.opacity = !clear && phase > 0 && phase < 12 ? String(1 - phase / 12) : '';
+      cell.classList.toggle('is-decoded', phase >= scrambleWidth);
+      cell.style.opacity = !clear && phase > 0 && phase < scrambleWidth ? String(1 - phase / scrambleWidth) : '';
     });
   }
 
@@ -486,7 +501,7 @@ function initFooterDecoder() {
 
     const start = performance.now();
     const from = position;
-    const duration = 380 * Math.abs(target - from);
+    const duration = durationMs * Math.abs(target - from);
     function draw(now) {
       const progress = duration ? Math.min(1, (now - start) / duration) : 1;
       position = from + (target - from) * progress;
