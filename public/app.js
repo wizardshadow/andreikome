@@ -301,21 +301,23 @@ async function assembleThumbnails(){
   try{
     for(const button of thumbs){
       const image=button.querySelector('img');if(!image.naturalWidth)continue;
-      const bounds=button.getBoundingClientRect(),imageBounds=image.getBoundingClientRect();
+      const bounds=button.getBoundingClientRect();
       if(!bounds.width||!bounds.height)continue;
       const surface=document.createElement('canvas'),context=surface.getContext('2d');
       if(!context)continue;
       surface.className='thumbnail-pixels';surface.setAttribute('aria-hidden','true');
       button.append(surface);
-      previews.push({surface,context,image,bounds,imageBounds,visibility:image.style.visibility});
+      previews.push({surface,context,image,bounds,visibility:image.style.visibility});
       image.style.visibility='hidden';
     }
     function render(progress){
       const block=1+15*Math.pow(1-progress,2);
-      for(const {surface,context,image,bounds,imageBounds} of previews){
+      for(const {surface,context,image,bounds} of previews){
         surface.width=Math.max(1,Math.ceil(bounds.width/block));surface.height=Math.max(1,Math.ceil(bounds.height/block));
         context.setTransform(surface.width/bounds.width,0,0,surface.height/bounds.height,0,0);
-        context.drawImage(image,imageBounds.left-bounds.left,imageBounds.top-bounds.top,imageBounds.width,imageBounds.height);
+        const scale=Math.max(bounds.width/image.naturalWidth,bounds.height/image.naturalHeight);
+        const width=image.naturalWidth*scale,height=image.naturalHeight*scale;
+        context.drawImage(image,(bounds.width-width)/2,(bounds.height-height)/2,width,height);
       }
     }
     render(0);switcher.style.visibility='visible';
@@ -329,7 +331,7 @@ async function assembleThumbnails(){
     switcher.style.visibility='visible';
   }
 }
-function updateSelection(index){thumbs.forEach((b,i)=>{b.classList.toggle('selected',i===index);b.setAttribute('aria-pressed',i===index)});const slide=window.SITE_CONTENT.hero.slides[index],img=card.querySelector('img');img.src=slide.cardImage||slideMedia[index].poster;img.style.cssText=slide.cardCrop?'':'width:100%;height:100%;left:0;top:0;object-fit:cover';card.setAttribute('aria-label','Посмотреть '+slide.title)}
+function updateSelection(index){thumbs.forEach((b,i)=>{b.classList.toggle('selected',i===index);b.setAttribute('aria-pressed',i===index)});const slide=window.SITE_CONTENT.hero.slides[index],img=card.querySelector('img');img.src=slideMedia[index].poster;img.alt=slide.title;card.setAttribute('aria-label','Посмотреть '+slide.title)}
 async function choose(index){
   const request=++slideRequest;
   cancelAnimationFrame(slideFrame);pixelCanvas.hidden=true;project.style.visibility='';
