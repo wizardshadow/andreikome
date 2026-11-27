@@ -81,6 +81,54 @@ def upload_verified(ftp, source, relative, release_id, host, user, password):
     print(f"Published {relative}", flush=True)
 
 
+def add_slide_link_fields(content):
+    # The legacy PHP CMS uses the published file as its validation template.
+    changed = False
+    for slide in content["hero"]["slides"]:
+        if "caseUrl" not in slide:
+            slide["caseUrl"] = ""
+            changed = True
+    return changed
+
+
+def cms_content_bytes(content):
+    data = json.dumps(content, ensure_ascii=False, separators=(",", ":"))
+    data = data.replace("<", r"\u003c").replace("\u2028", r"\u2028").replace("\u2029", r"\u2029")
+    return f"window.SITE_DEFAULTS={data};\n".encode("utf-8")
+
+
+def publish_cms_content(ftp, relative, payload, expected_digest, release_id, host, user, password):
+    with tempfile.TemporaryDirectory() as temp:
+        source = Path(temp) / relative.name
+        source.write_bytes(payload)
+        if remote_digest(host, user, password, PurePosixPath("/") / relative) != expected_digest:
+            print("CMS content changed during deployment; preserving the current publication", flush=True)
+            return False
+        upload_verified(ftp, source, relative, release_id, host, user, password)
+    return True
+
+
+def migrate_cms_slide_links(ftp, relative, release_id, host, user, password):
+    remote_path = PurePosixPath("/") / relative
+    with tempfile.TemporaryFile() as public_file:
+        result = transfer(host, user, password, remote_path, output=public_file)
+        if result.returncode:
+            raise OSError(f"Could not read public CMS data (curl exit {result.returncode})")
+        public_file.seek(0)
+        current = public_file.read()
+
+    prefix, equals, data = current.decode("utf-8").strip().partition("=")
+    if not equals or prefix.strip() != "window.SITE_DEFAULTS":
+        raise RuntimeError("Unexpected public CMS content format")
+    content = json.loads(data.strip().removesuffix(";"))
+    if not add_slide_link_fields(content):
+        return
+
+    digest = hashlib.sha256(current).hexdigest()
+    if publish_cms_content(ftp, relative, cms_content_bytes(content), digest, release_id, host, user, password):
+        print("Added slide link fields to the public CMS template", flush=True)
+
+
 def restore_cms_content(ftp, relative, default_digest, release_id, host, user, password):
     # A matching stock file can be the result of an earlier deployment.
     # The PHP CMS records the published content independently of that file.
@@ -96,20 +144,13 @@ def restore_cms_content(ftp, relative, default_digest, release_id, host, user, p
     if not isinstance(content, dict) or not content:
         raise RuntimeError("The CMS publication is missing its content")
 
-    data = json.dumps(content, ensure_ascii=False, separators=(",", ":"))
-    data = data.replace("<", r"\u003c").replace("\u2028", r"\u2028").replace("\u2029", r"\u2029")
-    payload = f"window.SITE_DEFAULTS={data};\n".encode("utf-8")
+    add_slide_link_fields(content)
+    payload = cms_content_bytes(content)
     if hashlib.sha256(payload).hexdigest() == default_digest:
         return
 
-    with tempfile.TemporaryDirectory() as temp:
-        source = Path(temp) / relative.name
-        source.write_bytes(payload)
-        if remote_digest(host, user, password, PurePosixPath("/") / relative) != default_digest:
-            print("CMS content changed during recovery; preserving the current publication", flush=True)
-            return
-        upload_verified(ftp, source, relative, release_id, host, user, password)
-    print("Restored public content from the saved CMS publication", flush=True)
+    if publish_cms_content(ftp, relative, payload, default_digest, release_id, host, user, password):
+        print("Restored public content from the saved CMS publication", flush=True)
 
 
 def publish(ftp, files, release_id, host, user, password):
@@ -131,6 +172,8 @@ def publish(ftp, files, release_id, host, user, password):
         if relative == PurePosixPath("content-defaults.js") and remote_size is not None:
             if same_file:
                 restore_cms_content(ftp, relative, digest, release_id, host, user, password)
+            else:
+                migrate_cms_slide_links(ftp, relative, release_id, host, user, password)
             print("Preserved the public CMS content file", flush=True)
             continue
         if same_file:

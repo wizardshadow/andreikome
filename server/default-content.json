@@ -65,7 +65,8 @@
         "thumbnailAlt": "Infinity Frameworks",
         "thumbnailCrop": false,
         "cardImage": "assets/work3.png",
-        "cardCrop": false
+        "cardCrop": false,
+        "caseUrl": ""
       },
       {
         "id": "slide-2",
@@ -75,7 +76,8 @@
         "thumbnailAlt": "Проект на белом фоне",
         "thumbnailCrop": false,
         "cardImage": "assets/work4.png",
-        "cardCrop": false
+        "cardCrop": false,
+        "caseUrl": ""
       },
       {
         "id": "slide-3",
@@ -85,7 +87,8 @@
         "thumbnailAlt": "OMIE RECORDS",
         "thumbnailCrop": true,
         "cardImage": "assets/work2.png",
-        "cardCrop": true
+        "cardCrop": true,
+        "caseUrl": ""
       },
       {
         "id": "slide-4",
@@ -95,7 +98,8 @@
         "thumbnailAlt": "Типографический проект",
         "thumbnailCrop": false,
         "cardImage": "assets/work5.png",
-        "cardCrop": false
+        "cardCrop": false,
+        "caseUrl": ""
       },
       {
         "id": "slide-5",
@@ -105,7 +109,8 @@
         "thumbnailAlt": "SEREPISRO",
         "thumbnailCrop": false,
         "cardImage": "assets/work6.png",
-        "cardCrop": false
+        "cardCrop": false,
+        "caseUrl": ""
       }
     ],
     "initialSlide": 2,

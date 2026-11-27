@@ -148,5 +148,4 @@
     body.append(title,list);dialog.showModal();updateFocus();reveal(title,0,600);
   };
   dialog.addEventListener('close',()=>{dialog.querySelectorAll('video').forEach(video=>video.pause());scheduleParallax()});
-  document.querySelector('#works').onclick=()=>section.scrollIntoView({behavior:reduced?'instant':'smooth'});
 })();

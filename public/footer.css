@@ -54,16 +54,24 @@
   margin-top: 2.15cqw;
 }
 
-.site-footer-socials button {
-  padding: 0;
+.social-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
   color: #888;
-  font: inherit;
-  font-size: clamp(12px, .8333cqw, 18px);
+  font: 400 clamp(12px, .8333vw, 18px)/1.4 Sonko, Arial, sans-serif;
   text-transform: uppercase;
 }
 
+.social-links a {
+  color: inherit;
+  text-decoration: none;
+}
+
 .site-footer a:hover,
-.site-footer-socials button:hover { color: #a9e500; }
+.social-links a:hover,
+.social-links a:focus-visible { color: #a9e500; }
 
 .site-footer-since { justify-self: end; }
 

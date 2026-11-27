@@ -219,7 +219,7 @@ async function dismissPreloader(){
 async function bootSite(){
   const hero=document.querySelector('.hero');hero.inert=true;
   const brand=[hero.querySelector('.brand h1'),hero.querySelector('.brand p')];
-  const blocks=[...hero.querySelectorAll('.intro,.services,.navigation,.sound,footer')]
+  const blocks=[...hero.querySelectorAll('.intro,.navigation,.sound,footer')]
     .sort((a,b)=>{const ar=a.getBoundingClientRect(),br=b.getBoundingClientRect();return ar.top-br.top||ar.left-br.left});
   const layers=[hero.querySelector('.brand .header-logo'),...brand,...blocks];
   const sliderLayers=[...hero.querySelectorAll('.thumbnails,.project-card')];
@@ -331,7 +331,17 @@ async function assembleThumbnails(){
     switcher.style.visibility='visible';
   }
 }
-function updateSelection(index){thumbs.forEach((b,i)=>{b.classList.toggle('selected',i===index);b.setAttribute('aria-pressed',i===index)});const slide=window.SITE_CONTENT.hero.slides[index],img=card.querySelector('img');img.src=slideMedia[index].poster;img.alt=slide.title;card.setAttribute('aria-label','Посмотреть '+slide.title)}
+function updateSelection(index){
+  thumbs.forEach((b,i)=>{b.classList.toggle('selected',i===index);b.setAttribute('aria-pressed',i===index)});
+  const slide=window.SITE_CONTENT.hero.slides[index],img=card.querySelector('img');
+  img.src=slideMedia[index].poster;
+  img.alt=slide.title;
+  card.href=slide.caseUrl || '#viewer';
+  if(slide.caseUrl)card.target='_blank';
+  else card.removeAttribute('target');
+  card.setAttribute('aria-label','Посмотреть '+slide.title);
+}
+updateSelection(current);
 async function choose(index){
   const request=++slideRequest;
   cancelAnimationFrame(slideFrame);pixelCanvas.hidden=true;project.style.visibility='';
@@ -369,8 +379,12 @@ viewer.addEventListener('close',()=>{
   if(!viewerVideo.hasAttribute('src'))return;
   viewerVideo.removeAttribute('src');
   viewerVideo.load();
-});card.onclick=view;document.querySelector('#works').onclick=()=>{thumbs[0].focus();thumbs.forEach((el,i)=>el.animate([{transform:'translateY(0)'},{transform:'translateY(-10px)'},{transform:'translateY(0)'}],{duration:450,delay:i*60}))};
-const panel=document.querySelector('#panel');const copy={'Кто я такой':'ANDREIKO. Worldwide working. Est. 2009.','Как я работаю':'Смыслы, тексты, внимание к деталям. Только ручная работа. Без шаблонов.','С кем я работаю':'Для основателей, которые любят то, что создают.','Контакты':'Обсудим ваш проект.','Разработка стратегий':'Стратегия — отправная точка проекта.','Брендинг и айдентика':'Смыслы и внимание к деталям.','Сайты и лендинги':'Только ручная работа. Без шаблонов.','Маркетинг и продажи':'Обсудим задачи вашего бизнеса.','Реклама':'Обсудим задачи вашего бизнеса.'};Object.assign(copy,window.SITE_PANELS||{});function openPanel(title,text){panel.querySelector('h2').dataset.ready='';panel.querySelector('h2').textContent=title;panel.querySelector('.panel-copy').textContent=text;panel.showModal();panel.querySelectorAll('.fx').forEach(el=>reveal(el));reveal(panel.querySelector('h2'))}document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>openPanel(b.dataset.panel,copy[b.dataset.panel]));document.querySelectorAll('[data-social]').forEach(b=>b.onclick=()=>{if(b.dataset.url){window.open(b.dataset.url,'_blank','noopener,noreferrer');return}openPanel(b.dataset.social,'Связаться с '+window.SITE_CONTENT.principles.name+' можно в Telegram.')});document.querySelectorAll('dialog').forEach(d=>{d.querySelector('.close').onclick=()=>d.close();d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close()}})});
+});card.addEventListener('click',event=>{
+  if(card.target==='_blank')return;
+  event.preventDefault();
+  view();
+});
+const panel=document.querySelector('#panel');const copy={'Кто я такой':'ANDREIKO. Worldwide working. Est. 2009.','Как я работаю':'Смыслы, тексты, внимание к деталям. Только ручная работа. Без шаблонов.','С кем я работаю':'Для основателей, которые любят то, что создают.','Контакты':'Обсудим ваш проект.','Разработка стратегий':'Стратегия — отправная точка проекта.','Брендинг и айдентика':'Смыслы и внимание к деталям.','Сайты и лендинги':'Только ручная работа. Без шаблонов.','Маркетинг и продажи':'Обсудим задачи вашего бизнеса.','Реклама':'Обсудим задачи вашего бизнеса.'};Object.assign(copy,window.SITE_PANELS||{});function openPanel(title,text){panel.querySelector('h2').dataset.ready='';panel.querySelector('h2').textContent=title;panel.querySelector('.panel-copy').textContent=text;panel.showModal();panel.querySelectorAll('.fx').forEach(el=>reveal(el));reveal(panel.querySelector('h2'))}document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>openPanel(b.dataset.panel,copy[b.dataset.panel]));document.querySelectorAll('dialog').forEach(d=>{d.querySelector('.close').onclick=()=>d.close();d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close()}})});
 // Measure rendered word rows, retaining responsive wrapping and accent spans.
 async function revealStatementLines(layer){
   const rows=[];
@@ -613,17 +627,7 @@ function initStickyHeader() {
   });
 
   menu.addEventListener('click', event => {
-    const control = event.target.closest('button,a');
-    if (!isOpen() || !control) return;
-    setMenu(false);
-    const dialog = document.querySelector('dialog[open]');
-    if (dialog) {
-      dialog.addEventListener('close', () => {
-        if (mobile.matches) toggle.focus({ preventScroll: true });
-      }, { once: true });
-    } else if(control.tagName==='BUTTON') {
-      toggle.focus({ preventScroll: true });
-    }
+    if (isOpen() && event.target.closest('a')) setMenu(false);
   });
   header.querySelector('.sticky-home').addEventListener('click', () => setMenu(false));
 }

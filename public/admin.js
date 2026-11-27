@@ -3,7 +3,7 @@
   const adminPath=location.pathname.startsWith('/cpanel')?'/cpanel':'/admin';
   const returnTo=encodeURIComponent(adminPath);
   let config=null,revision=null,published=null,dirty=false,busy=false,tab='home';
-  const titles={home:'Главная',slides:'Слайдер',principles:'Принципы',process:'Процесс',about:'Обо мне',faq:'FAQ',works:'Работы',contacts:'Контакты и меню',effects:'Анимации и оформление',media:'Медиафайлы',history:'История публикаций'};
+  const titles={home:'Главная',slides:'Слайдер',principles:'Принципы',process:'Процесс',about:'Обо мне',faq:'FAQ',works:'Работы',contacts:'Контакты',navigation:'Меню',effects:'Анимации и оформление',media:'Медиафайлы',history:'История публикаций'};
   function notice(message,error=false){const node=$('#notice');node.hidden=!message;node.textContent=message;node.className=error?'error':''}
   const date=value=>value?new Intl.DateTimeFormat('ru-RU',{dateStyle:'medium',timeStyle:'short',timeZone:'Europe/Moscow'}).format(new Date(value)):'ещё не опубликован';
   function state(){ $('#save-state').textContent=busy?'Сохраняю…':dirty?'Есть несохранённые изменения':revision?'Черновик сохранён':'Контент загружен';$('#published-state').textContent='Последняя публикация: '+date(published?.createdAt);for(const id of ['save','publish','preview','import'])$('#'+id).disabled=busy||!config; }
@@ -47,9 +47,15 @@
   const mediaUrl=value=>value?.startsWith('assets/')?'/'+value:value||'';
   function field(target,path,label,type='text',hint=''){
     const wrap=create('label','field'+(type==='checkbox'?' checkbox':''));wrap.append(create('span','',label));const value=read(path);let input;
-    if(type==='textarea'){input=create('textarea');input.rows=3;input.value=value}
+    if(type==='section'){
+      input=create('select');
+      input.append(new Option('Выберите блок',''));
+      for(const [id,title] of Object.entries(window.heroNavigationSections))input.append(new Option(title,id));
+      input.value=window.heroNavigationTarget({title:value,label:read(path.replace(/title$/,'label'))});
+    }
+    else if(type==='textarea'){input=create('textarea');input.rows=3;input.value=value}
     else{input=create('input');input.type=type==='checkbox'?'checkbox':type==='number'?'number':type==='color'?'color':'text';if(type==='checkbox')input.checked=value;else input.value=value;if(type==='number')input.step=path.endsWith('grainOpacity')?'0.001':'1'}
-    input.dataset.path=path;const update=()=>write(path,type==='checkbox'?input.checked:type==='number'?Number(input.value):input.value);input.addEventListener(type==='checkbox'?'change':'input',update);
+    input.dataset.path=path;const update=()=>write(path,type==='checkbox'?input.checked:type==='number'?Number(input.value):input.value);input.addEventListener(type==='checkbox'||type==='section'?'change':'input',update);
     if(type==='media'||type==='video'){
       const row=create('div','media-input'),button=create('button','secondary','Загрузить'),picker=create('input');button.type='button';picker.type='file';picker.hidden=true;picker.accept=type==='video'?'video/mp4':'image/*';button.onclick=event=>{event.preventDefault();picker.click()};picker.onchange=async()=>{const file=picker.files[0];if(!file)return;button.disabled=true;button.textContent='Загружаю…';try{const item=await upload(file);input.value=item.url;write(path,item.url);preview.src=item.url;preview.hidden=false;notice('Файл загружен. Сохраните черновик, чтобы закрепить его в контенте.')}catch(error){notice(error.message,true)}finally{button.disabled=false;button.textContent='Загрузить'}};row.append(input,button,picker);wrap.append(row);const preview=create(type==='video'?'video':'img','media-preview');preview.src=mediaUrl(value);preview.hidden=!value;if(type==='video'){preview.controls=true;preview.preload='metadata';preview.muted=true}else preview.alt=label;input.addEventListener('change',()=>{preview.src=mediaUrl(input.value);preview.hidden=!input.value});wrap.append(preview)
     }else wrap.append(input);
@@ -64,7 +70,10 @@
     if(remove){const b=create('button','small-button danger','Удалить');b.type='button';b.onclick=()=>{if(slide&&items.length===1){notice('В слайдере должен остаться хотя бы один слайд.',true);return}if(!confirm('Удалить «'+title+'» из черновика?'))return;const active=slide?config.hero.slides[config.hero.initialSlide]?.id:null;items.splice(index,1);if(slide)config.hero.initialSlide=Math.max(0,items.findIndex(item=>item.id===active));changed();render()};controls.append(b)}return body;
   }
   function addButton(label,action){const row=create('div','list-actions'),button=create('button','secondary',label);button.onclick=action;row.append(button);$('#content').append(row)}
-  function home(){intro('Основные тексты первого экрана. Настройки меню и социальных ссылок находятся в разделе «Контакты и меню».');let s=section('Название и описание');fields(s.fields,[['hero.brand','Первая часть названия'],['hero.agency','Вторая часть названия'],['hero.intro','Вводный текст','textarea'],['hero.footerLocation','Подпись внизу'],['hero.footerSince','Год / дополнительная подпись']]);s=section('Услуги');config.hero.services.forEach((item,i)=>{const f=create('div','field wide');f.append(create('h3','',item.title||'Услуга'));const grid=create('div','fields');fields(grid,[[`hero.services.${i}.title`,'Название'],[`hero.services.${i}.body`,'Текст при нажатии','textarea']]);f.append(grid);s.fields.append(f)})}
+  function home(){
+    const s=section('Название и описание');
+    fields(s.fields,[['hero.brand','Первая часть названия'],['hero.agency','Вторая часть названия'],['hero.intro','Вводный текст','textarea'],['hero.footerLocation','Подпись внизу'],['hero.footerSince','Год / дополнительная подпись']]);
+  }
   async function capturePoster(file){
     const url=URL.createObjectURL(file);
     const video=create('video');
@@ -164,13 +173,14 @@
       radio.onchange=()=>{config.hero.initialSlide=i;changed()};
       label.append(radio,create('span','','Показывать первым'));
       field(details,`hero.slides.${i}.title`,'Название слайда');
+      field(details,`hero.slides.${i}.caseUrl`,'Ссылка на проект','text','Открывается в новой вкладке.');
       details.append(label);
       target.append(details);
       slideUpload(target,item);
     });
     addButton('+ Добавить слайд',()=>{
       if(config.hero.slides.length>=20){notice('Максимум 20 слайдов.',true);return}
-      config.hero.slides.push({id:crypto.randomUUID(),title:'Новый слайд',image:'',thumbnail:'',thumbnailAlt:'',thumbnailCrop:false,cardImage:'',cardCrop:false});
+      config.hero.slides.push({id:crypto.randomUUID(),title:'Новый слайд',image:'',thumbnail:'',thumbnailAlt:'',thumbnailCrop:false,cardImage:'',cardCrop:false,caseUrl:''});
       changed();render();
     });
   }
@@ -218,12 +228,33 @@
     });
   }
   function works(){intro('Добавляйте работы, меняйте порядок, превью и видео. Выключенная работа остаётся в админке, но скрыта на сайте.');let s=section('Настройки раздела');fields(s.fields,[['visibility.works','Показывать раздел','checkbox'],['works.allLabel','Подпись «Все кейсы»'],['works.caseLabel','Подпись кнопки кейса']]);config.works.items.forEach((item,i)=>{const target=listItem(item.title||'Работа '+(i+1),i,config.works.items);fields(target,[[`works.items.${i}.visible`,'Показывать работу','checkbox'],[`works.items.${i}.title`,'Название'],[`works.items.${i}.client`,'Подпись клиента'],[`works.items.${i}.category`,'Категория'],[`works.items.${i}.number`,'Номер'],[`works.items.${i}.duration`,'Срок проекта'],[`works.items.${i}.description`,'Описание','textarea'],[`works.items.${i}.caseUrl`,'Ссылка на полный кейс','text','Оставьте пустой, чтобы открывалось встроенное окно с видео.'],[`works.items.${i}.preview`,'Превью','media'],[`works.items.${i}.video`,'Видео','video'],[`works.items.${i}.previewAlt`,'Описание изображения']])});addButton('+ Добавить работу',()=>{if(config.works.items.length>=30){notice('Максимум 30 работ.',true);return}const example=config.works.items[0]||window.SITE_DEFAULTS?.works.items[0];config.works.items.push(example?{...structuredClone(example),id:crypto.randomUUID(),title:'Новая работа',visible:false}:{id:crypto.randomUUID(),title:'Новая работа',client:'',category:'web',number:'',description:'',duration:'',preview:'assets/works/render-courses.jpg',previewAlt:'',video:'assets/works/demo.mp4',caseUrl:'',visible:false});changed();render()})}
-  function contacts(){let s=section('Контакты');fields(s.fields,[['contacts.telegram','Telegram — полная ссылка'],['contacts.email','Email'],['contacts.buttonLabel','Подпись кнопки связи'],['hero.worksLabel','Пункт меню «Работы»']]);config.hero.navigation.forEach((item,i)=>{const panel=section('Меню: '+item.label);fields(panel.fields,[[`hero.navigation.${i}.label`,'Подпись пункта'],[`hero.navigation.${i}.title`,'Заголовок окна'],[`hero.navigation.${i}.body`,'Текст окна','textarea']])});config.hero.socials.forEach((item,i)=>{const target=listItem(item.label||'Социальная ссылка',i,config.hero.socials);fields(target,[[`hero.socials.${i}.label`,'Подпись'],[`hero.socials.${i}.url`,'Ссылка','text','Поддерживаются https://, mailto: и tel:.']])});addButton('+ Добавить ссылку',()=>{config.hero.socials.push({label:'Новая ссылка',url:''});changed();render()})}
+  function navigation(){
+    const s=section('Навигация');
+    field(s.fields,'hero.worksLabel','Пункт меню «Работы»');
+    config.hero.navigation.forEach((item,i)=>{
+      const target=section(item.label||'Пункт меню');
+      fields(target.fields,[[`hero.navigation.${i}.label`,'Подпись пункта'],[`hero.navigation.${i}.title`,'Раздел страницы','section']]);
+    });
+  }
+  function contacts(){
+    const s=section('Контакты');
+    fields(s.fields,[['contacts.telegram','Telegram — полная ссылка'],['contacts.email','Email'],['contacts.buttonLabel','Подпись кнопки связи']]);
+    intro('Социальные ссылки отображаются в первом экране, закреплённом меню и подвале.');
+    config.hero.socials.forEach((item,i)=>{
+      const target=listItem(item.label||'Социальная ссылка',i,config.hero.socials);
+      fields(target,[[`hero.socials.${i}.label`,'Подпись'],[`hero.socials.${i}.url`,'Ссылка','text','Поддерживаются https://, mailto: и tel:.']]);
+    });
+    addButton('+ Добавить ссылку',()=>{
+      if(config.hero.socials.length>=12){notice('Максимум 12 ссылок.',true);return}
+      config.hero.socials.push({label:'Новая ссылка',url:''});
+      changed();render();
+    });
+  }
   function effects(){intro('Длительности указаны в миллисекундах. Настройки применяются вместе с публикацией контента.');let s=section('Оформление и метаданные');fields(s.fields,[['meta.accent','Акцентный цвет','color'],['effects.grainOpacity','Интенсивность шума, от 0 до 0,3','number'],['meta.title','Название вкладки'],['meta.description','Описание для поисковиков','textarea'],['effects.cursor','Курсор SVG','media']]);s=section('Главный экран');fields(s.fields,[['effects.heroSlideMs','Сборка первого слайда, мс','number'],['effects.heroTextMs','Появление текстового блока, мс','number'],['effects.heroPreviewMs','Сборка миниатюр, мс','number'],['effects.slideMs','Переход между слайдами, мс','number']]);s=section('Второй экран');fields(s.fields,[['effects.principlesMainMs','Построчное появление основного текста, мс','number'],['effects.principlesDescriptionMs','Нижний абзац, мс','number'],['effects.principlesOtherMs','Остальные элементы, мс','number']]);s=section('Работы и видео');fields(s.fields,[['effects.workTextMs','Расшифровка текста, мс','number'],['effects.videoTransitionMs','Пиксельный переход видео, мс','number'],['effects.videoScale','Размер видео, от 30 до 100%','number'],['effects.videoDim','Затемнение превью, от 0 до 100%','number']])}
   async function upload(file){return api('media',{method:'POST',headers:{'Content-Type':file.type||'application/octet-stream','X-File-Name':encodeURIComponent(file.name)},body:file})}
   async function media(){intro('Загруженные файлы хранятся на сервере. Для использования вставьте ссылку в нужный слайд, работу или текстовый блок. Максимальный размер — 25 МБ.');const button=create('button','secondary','+ Загрузить файлы'),picker=create('input');picker.type='file';picker.multiple=true;picker.accept='image/*,video/mp4,audio/mpeg';picker.hidden=true;button.onclick=()=>picker.click();picker.onchange=async()=>{button.disabled=true;try{for(const file of picker.files)await upload(file);notice('Файлы загружены.');await render()}catch(error){notice(error.message,true)}finally{button.disabled=false}};$('#content').append(button,picker);const data=await api('media');if(tab!=='media')return;if(!data.items.length){$('#content').append(create('p','empty','Здесь появятся загруженные вами файлы. Исходные изображения сайта уже доступны в полях контента.'));return}const grid=create('div','media-grid');grid.style.marginTop='24px';for(const item of data.items){const card=create('article','media-card');if(item.type.startsWith('image/')){const img=create('img');img.src=item.url;img.alt=item.name;img.loading='lazy';card.append(img)}else card.append(create('div','media-placeholder',item.type.startsWith('video/')?'Видео':'Аудио'));const body=create('div','media-card-content');body.append(create('strong','',item.name),create('small','',(item.size/1024/1024).toFixed(2)+' МБ'));const actions=create('div'),copy=create('button','small-button','Ссылка'),remove=create('button','small-button danger','Удалить');copy.onclick=async()=>{try{await navigator.clipboard.writeText(new URL(item.url,location.origin).href);notice('Ссылка скопирована.')}catch{prompt('Ссылка на файл',new URL(item.url,location.origin).href)}};remove.onclick=async()=>{if(!confirm('Удалить файл «'+item.name+'»?'))return;try{await api('media/'+item.id,{method:'DELETE'});await render()}catch(error){notice(error.message,true)}};actions.append(copy,remove);body.append(actions);card.append(body);grid.append(card)}$('#content').append(grid)}
   async function history(){intro('Восстановление переносит выбранную версию в черновик. Чтобы показать её посетителям, нажмите «Опубликовать».');const data=await api('history');if(tab!=='history')return;const s=section('Опубликованные версии');if(!data.items.length){s.panel.append(create('p','muted','Публикаций через админку пока нет.'));return}for(const item of data.items){const row=create('div','history-row'),description=create('div');description.append(create('strong','',date(item.createdAt)),create('small','',item.revision===published?.revision?'Текущая публикация':'Сохранённая версия'));const button=create('button','secondary','Восстановить в черновик');button.onclick=async()=>{if(!confirm('Восстановить эту версию в черновик? Несохранённые изменения будут заменены.'))return;try{apply(await api('restore',{method:'POST',body:JSON.stringify({revision:item.revision,baseRevision:revision})}));notice('Версия восстановлена в черновик. Проверьте её в предпросмотре.');await render()}catch(error){notice(error.message,true)}};row.append(description,button);s.panel.append(row)}}
-  async function render(){if(!config)return;$('#page-title').textContent=titles[tab];document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('selected',b.dataset.tab===tab));$('#content').replaceChildren();try{await({home,slides,principles,process,about,faq,works,contacts,effects,media,history}[tab])()}catch(error){notice(error.message,true)}}
+  async function render(){if(!config)return;$('#page-title').textContent=titles[tab];document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('selected',b.dataset.tab===tab));$('#content').replaceChildren();try{await({home,slides,principles,process,about,faq,works,contacts,navigation,effects,media,history}[tab])()}catch(error){notice(error.message,true)}}
   document.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{tab=button.dataset.tab;render()});$('#save').onclick=save;$('#publish').onclick=publish;
   let authMode='chatgpt';
   const signout=$('#signout-link');

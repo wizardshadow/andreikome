@@ -7,31 +7,33 @@
   root.style.setProperty('--site-cursor','url('+JSON.stringify(c.effects.cursor)+')');
   text('.brand h1',c.hero.brand);text('.brand p',c.hero.agency);text('.intro',c.hero.intro);text('footer .details span:nth-child(1)',c.hero.footerLocation);text('footer .details span:nth-child(2)',c.hero.footerSince);
   const panels={};
-  q('.services').replaceChildren();
-  c.hero.services.forEach((service,i)=>{const line=el('img');line.src='assets/'+(i===0?'line0.svg':'line1.svg');line.alt='';const button=el('button','fx',service.title);button.dataset.panel=service.title;panels[service.title]=service.body;q('.services').append(line,button)});
-  const endLine=el('img');endLine.src='assets/line1.svg';endLine.alt='';q('.services').append(endLine);
   const nav=q('.navigation'),stickyNav=q('.sticky-navigation');
   nav.replaceChildren();
-  const works=el('button','active fx',c.hero.worksLabel);works.id='works';nav.append(works);
-  const stickyWorks=el('a','active fx',c.hero.worksLabel);
-  stickyWorks.href='#selected-works';stickyNav.append(stickyWorks);
-  for(const item of c.hero.navigation){
-    const button=el('button','fx',item.label);
-    button.dataset.panel=item.title;
-    panels[item.title]=item.body;
-    nav.append(button);stickyNav.append(button.cloneNode(true));
+  function addNavigationLink(label,target,active=false){
+    if (!target || c.visibility[target==='selected-works'?'works':target]===false) return;
+    const link=el('a',active?'active fx':'fx',label);
+    link.href='#'+target;
+    nav.append(link);
+    stickyNav.append(link.cloneNode(true));
   }
+  addNavigationLink(c.hero.worksLabel,'selected-works',true);
+  c.hero.navigation.forEach(item=>addNavigationLink(item.label,window.heroNavigationTarget(item)));
   const thumbs=q('.thumbnails');thumbs.replaceChildren();thumbs.classList.toggle('many-slides',c.hero.slides.length>5);
   c.hero.slides.forEach((slide,i)=>{const button=el('button','thumb'+(i===c.hero.initialSlide?' selected':''));button.dataset.project=i;button.setAttribute('aria-label',slide.title);button.setAttribute('aria-pressed',String(i===c.hero.initialSlide));const image=el('img');image.src=window.heroSlideMedia(slide).poster;image.alt='';button.append(image);thumbs.append(button)});
   const initial=c.hero.slides[c.hero.initialSlide]||c.hero.slides[0];q('#project').src=window.heroSlideMedia(initial).poster;
   const card=q('.project-card'),cardImage=card.querySelector('img');cardImage.src=window.heroSlideMedia(initial).poster;cardImage.alt=initial.title;card.setAttribute('aria-label','Посмотреть '+initial.title);
-  const socialLinks=q('.hero-footer .socials'),stickySocials=q('.sticky-socials');
-  socialLinks.replaceChildren();
-  for(const item of c.hero.socials){
-    const button=el('button','fx',item.label);
-    button.dataset.social=item.label;
-    if(item.url)button.dataset.url=item.url;
-    socialLinks.append(button);stickySocials.append(button.cloneNode(true));
+  for (const group of all('.social-links')) {
+    group.replaceChildren();
+    for (const item of c.hero.socials) {
+      if (!item.label.trim()) continue;
+      const link=el(item.url?'a':'span','',item.label);
+      if (item.url) {
+        link.href=item.url;
+        link.target='_blank';
+        link.rel='noopener noreferrer';
+      }
+      group.append(link);
+    }
   }
   const siteFooter=q('.site-footer');
   if(siteFooter){
@@ -45,11 +47,7 @@
       siteFooter.querySelector('.site-footer-telegram').href=c.contacts.telegram;
       siteFooter.querySelector('.site-footer-cta').href=c.contacts.telegram;
     }
-    for(const button of siteFooter.querySelectorAll('[data-social]')){
-      const labels=[button.dataset.social,button.textContent.trim()].map(label=>label.toLowerCase());
-      const social=c.hero.socials.find(item=>labels.includes(item.label.toLowerCase()));
-      if(social?.url)button.dataset.url=social.url;
-    }
+
   }
   text('.principles-label .fx',c.principles.label);const parts=all('.principles-statement>.fx');[c.principles.before,c.principles.highlight,c.principles.after].forEach((value,i)=>text(parts[i],value));
   text('.principles-description',c.principles.description);text('.principles-name',c.principles.name);text('.principles-role',c.principles.role);text('.principles-founder blockquote',c.principles.quote);q('.principles-portrait img').src=c.principles.portrait;q('.principles-portrait img').alt=c.principles.name;
