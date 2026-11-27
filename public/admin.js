@@ -44,13 +44,14 @@
   const read=path=>path.split('.').reduce((obj,key)=>obj[key],config);
   const write=(path,value)=>{const parts=path.split('.');const key=parts.pop();parts.reduce((obj,k)=>obj[k],config)[key]=value;changed()};
   function section(title){const panel=create('section','section'),heading=create('h2','',title),fields=create('div','fields');panel.append(heading,fields);$('#content').append(panel);return{panel,fields,heading}}
+  const mediaUrl=value=>value?.startsWith('assets/')?'/'+value:value||'';
   function field(target,path,label,type='text',hint=''){
     const wrap=create('label','field'+(['textarea','media','video'].includes(type)?' wide':'')+(type==='checkbox'?' checkbox':''));wrap.append(create('span','',label));const value=read(path);let input;
     if(type==='textarea'){input=create('textarea');input.rows=4;input.value=value}
     else{input=create('input');input.type=type==='checkbox'?'checkbox':type==='number'?'number':type==='color'?'color':'text';if(type==='checkbox')input.checked=value;else input.value=value;if(type==='number')input.step=path.endsWith('grainOpacity')?'0.001':'1'}
     input.dataset.path=path;const update=()=>write(path,type==='checkbox'?input.checked:type==='number'?Number(input.value):input.value);input.addEventListener(type==='checkbox'?'change':'input',update);
     if(type==='media'||type==='video'){
-      const row=create('div','media-input'),button=create('button','secondary','Загрузить'),picker=create('input');button.type='button';picker.type='file';picker.hidden=true;picker.accept=type==='video'?'video/mp4':'image/*';button.onclick=event=>{event.preventDefault();picker.click()};picker.onchange=async()=>{const file=picker.files[0];if(!file)return;button.disabled=true;button.textContent='Загружаю…';try{const item=await upload(file);input.value=item.url;write(path,item.url);preview.src=item.url;preview.hidden=false;notice('Файл загружен. Сохраните черновик, чтобы закрепить его в контенте.')}catch(error){notice(error.message,true)}finally{button.disabled=false;button.textContent='Загрузить'}};row.append(input,button,picker);wrap.append(row);const preview=create(type==='video'?'video':'img','media-preview');preview.src=value;preview.hidden=!value;if(type==='video'){preview.controls=true;preview.preload='metadata';preview.muted=true}else preview.alt=label;input.addEventListener('change',()=>{preview.src=input.value;preview.hidden=!input.value});wrap.append(preview)
+      const row=create('div','media-input'),button=create('button','secondary','Загрузить'),picker=create('input');button.type='button';picker.type='file';picker.hidden=true;picker.accept=type==='video'?'video/mp4':'image/*';button.onclick=event=>{event.preventDefault();picker.click()};picker.onchange=async()=>{const file=picker.files[0];if(!file)return;button.disabled=true;button.textContent='Загружаю…';try{const item=await upload(file);input.value=item.url;write(path,item.url);preview.src=item.url;preview.hidden=false;notice('Файл загружен. Сохраните черновик, чтобы закрепить его в контенте.')}catch(error){notice(error.message,true)}finally{button.disabled=false;button.textContent='Загрузить'}};row.append(input,button,picker);wrap.append(row);const preview=create(type==='video'?'video':'img','media-preview');preview.src=mediaUrl(value);preview.hidden=!value;if(type==='video'){preview.controls=true;preview.preload='metadata';preview.muted=true}else preview.alt=label;input.addEventListener('change',()=>{preview.src=mediaUrl(input.value);preview.hidden=!input.value});wrap.append(preview)
     }else wrap.append(input);
     if(hint)wrap.append(create('small','hint',hint));target.append(wrap);return input;
   }
@@ -64,7 +65,115 @@
   }
   function addButton(label,action){const row=create('div','list-actions'),button=create('button','secondary',label);button.onclick=action;row.append(button);$('#content').append(row)}
   function home(){intro('Основные тексты первого экрана. Настройки меню и социальных ссылок находятся в разделе «Контакты и меню».');let s=section('Название и описание');fields(s.fields,[['hero.brand','Первая часть названия'],['hero.agency','Вторая часть названия'],['hero.intro','Вводный текст','textarea'],['hero.footerLocation','Подпись внизу'],['hero.footerSince','Год / дополнительная подпись']]);s=section('Услуги');config.hero.services.forEach((item,i)=>{const f=create('div','field wide');f.append(create('h3','',item.title||'Услуга'));const grid=create('div','fields');fields(grid,[[`hero.services.${i}.title`,'Название'],[`hero.services.${i}.body`,'Текст при нажатии','textarea']]);f.append(grid);s.fields.append(f)})}
-  function slides(){intro('Управляйте изображениями, миниатюрами и порядком слайдов. Изменения появятся на сайте после публикации.');config.hero.slides.forEach((item,i)=>{const target=listItem(item.title||'Слайд '+(i+1),i,config.hero.slides,{slide:true});const label=create('label','field checkbox'),radio=create('input');radio.type='radio';radio.name='initial-slide';radio.checked=config.hero.initialSlide===i;radio.onchange=()=>{config.hero.initialSlide=i;changed()};label.append(radio,create('span','','Показывать первым'));target.append(label);fields(target,[[`hero.slides.${i}.title`,'Название слайда'],[`hero.slides.${i}.image`,'Основное изображение','media'],[`hero.slides.${i}.thumbnail`,'Миниатюра','media'],[`hero.slides.${i}.thumbnailAlt`,'Описание миниатюры'],[`hero.slides.${i}.thumbnailCrop`,'Обрезка миниатюры как в исходном макете','checkbox'],[`hero.slides.${i}.cardImage`,'Изображение дополнительного превью справа','media'],[`hero.slides.${i}.cardCrop`,'Обрезка правого превью как в исходном макете','checkbox']])});addButton('+ Добавить слайд',()=>{if(config.hero.slides.length>=20){notice('Максимум 20 слайдов.',true);return}config.hero.slides.push({...structuredClone(config.hero.slides.at(-1)),id:crypto.randomUUID(),title:'Новый слайд',thumbnailCrop:false,cardCrop:false});changed();render()})}
+  async function capturePoster(file){
+    const url=URL.createObjectURL(file);
+    const video=create('video');
+    video.muted=true;
+    video.playsInline=true;
+    video.preload='auto';
+    try{
+      await new Promise((resolve,reject)=>{
+        const failed=()=>reject(new Error('Не удалось прочитать первый кадр. Проверьте, что MP4 воспроизводится в браузере.'));
+        const timeout=setTimeout(failed,12000);
+        video.onloadeddata=()=>{clearTimeout(timeout);resolve()};
+        video.onerror=()=>{clearTimeout(timeout);failed()};
+        video.src=url;
+      });
+      const canvas=create('canvas');
+      const scale=Math.min(1,1920/Math.max(video.videoWidth,video.videoHeight));
+      canvas.width=Math.round(video.videoWidth*scale);
+      canvas.height=Math.round(video.videoHeight*scale);
+      canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
+      const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.88));
+      if(!blob)throw new Error('Не удалось создать превью.');
+      return new File([blob],file.name.replace(/\.mp4$/i,'')+'-poster.jpg',{type:'image/jpeg'});
+    }finally{
+      video.removeAttribute('src');
+      video.load();
+      URL.revokeObjectURL(url);
+    }
+  }
+  function slideUpload(target,item){
+    const group=create('div','slide-media');
+    const preview=create('img','media-preview');
+    const source=create('a','slide-source');
+    source.target='_blank';source.rel='noopener';
+    function showMedia(){
+      const {poster}=window.heroSlideMedia(item);
+      preview.src=mediaUrl(poster||'');
+      preview.alt=item.title;
+      preview.hidden=!poster;
+      source.hidden=!item.image;
+      if(item.image){
+        source.href=mediaUrl(item.image);
+        source.textContent=item.image.split('/').at(-1);
+      }
+    }
+    const controls=create('div','slide-upload-controls');
+    const button=create('button','secondary','Загрузить слайд');
+    const picker=create('input');
+    button.type='button';
+    picker.type='file';
+    picker.accept='image/jpeg,image/png,image/gif,image/webp,image/avif,image/svg+xml,video/mp4';
+    picker.hidden=true;
+    button.onclick=()=>picker.click();
+    picker.onchange=async()=>{
+      const file=picker.files[0];
+      picker.value='';
+      if(!file||busy)return;
+      busy=true;state();
+      button.disabled=true;
+      button.textContent='Загружаю…';
+      const uploaded=[];
+      try{
+        if(file.size>25*1024*1024)throw new Error('Максимальный размер файла — 25 МБ.');
+        const isVideo=file.type==='video/mp4';
+        const poster=isVideo?await capturePoster(file):null;
+        const media=await upload(file);
+        uploaded.push(media);
+        if(poster)uploaded.push(await upload(poster));
+        if(!config.hero.slides.includes(item))throw new Error('Слайд был удалён во время загрузки.');
+        const previewUrl=uploaded.at(-1).url;
+        Object.assign(item,{image:media.url,thumbnail:previewUrl,cardImage:previewUrl,thumbnailAlt:'',thumbnailCrop:false,cardCrop:false});
+        if(tab==='slides'&&!target.isConnected)await render();
+        else showMedia();
+        changed();
+        notice('Слайд загружен. Сохраните черновик и опубликуйте изменения.');
+      }catch(error){
+        await Promise.allSettled(uploaded.map(media=>api('media/'+media.id,{method:'DELETE'})));
+        notice(error.message,true);
+      }
+      finally{busy=false;state();button.disabled=false;button.textContent='Загрузить слайд'}
+    };
+    controls.append(button,picker,source);
+    group.append(preview,controls);
+    showMedia();
+    target.append(group);
+  }
+  function slides(){
+    intro('Загрузите изображение или MP4. Превью видео создаётся из первого кадра.');
+    config.hero.slides.forEach((item,i)=>{
+      const target=listItem(item.title||'Слайд '+(i+1),i,config.hero.slides,{slide:true});
+      target.classList.add('slide-fields');
+      const details=create('div','slide-details');
+      const label=create('label','slide-initial');
+      const radio=create('input');
+      radio.type='radio';
+      radio.name='initial-slide';
+      radio.checked=config.hero.initialSlide===i;
+      radio.onchange=()=>{config.hero.initialSlide=i;changed()};
+      label.append(radio,create('span','','Показывать первым'));
+      field(details,`hero.slides.${i}.title`,'Название слайда');
+      details.append(label);
+      target.append(details);
+      slideUpload(target,item);
+    });
+    addButton('+ Добавить слайд',()=>{
+      if(config.hero.slides.length>=20){notice('Максимум 20 слайдов.',true);return}
+      config.hero.slides.push({id:crypto.randomUUID(),title:'Новый слайд',image:'',thumbnail:'',thumbnailAlt:'',thumbnailCrop:false,cardImage:'',cardCrop:false});
+      changed();render();
+    });
+  }
   function principles(){intro('Тексты второго экрана. Три части основного текста позволяют сохранить выделение оранжевым.');let s=section('Основной блок');fields(s.fields,[['visibility.principles','Показывать раздел на сайте','checkbox'],['principles.label','Подпись раздела'],['principles.before','Текст до акцента','textarea'],['principles.highlight','Оранжевый фрагмент','textarea'],['principles.after','Текст после акцента','textarea'],['principles.description','Нижний абзац','textarea']]);s=section('Основатель');fields(s.fields,[['principles.portrait','Портрет','media'],['principles.name','Имя'],['principles.role','Должность'],['principles.quote','Цитата','textarea']]);config.principles.directions.forEach((item,i)=>{const p=section('Направление: '+item.label);fields(p.fields,[[`principles.directions.${i}.label`,'Подпись кнопки'],[`principles.directions.${i}.title`,'Заголовок окна'],[`principles.directions.${i}.body`,'Текст окна','textarea']])})}
   function process(){
     if(!config.process)config.process={label:'',titleAccent:'',title:'',term:'',cost:'',background:'assets/process/bg.jpg',steps:[]};

@@ -13,9 +13,9 @@
   const nav=q('.navigation');nav.replaceChildren();const works=el('button','active fx',c.hero.worksLabel);works.id='works';nav.append(works);
   c.hero.navigation.forEach(item=>{const button=el('button','fx',item.label);button.dataset.panel=item.title;panels[item.title]=item.body;nav.append(button)});
   const thumbs=q('.thumbnails');thumbs.replaceChildren();thumbs.classList.toggle('many-slides',c.hero.slides.length>5);
-  c.hero.slides.forEach((slide,i)=>{const button=el('button','thumb'+(slide.thumbnailCrop?' crop':'')+(i===c.hero.initialSlide?' selected':''));button.dataset.project=i;button.setAttribute('aria-label',slide.title);button.setAttribute('aria-pressed',String(i===c.hero.initialSlide));const image=el('img');image.src=slide.thumbnail||slide.image;image.alt=slide.thumbnailAlt||slide.title;button.append(image);thumbs.append(button)});
-  const initial=c.hero.slides[c.hero.initialSlide]||c.hero.slides[0];q('#project').src=initial.image;
-  const card=q('.project-card'),cardImage=card.querySelector('img');cardImage.src=initial.cardImage||initial.image;cardImage.alt=initial.title;if(!initial.cardCrop)cardImage.style.cssText='width:100%;height:100%;left:0;top:0;object-fit:cover';card.setAttribute('aria-label','Посмотреть '+initial.title);
+  c.hero.slides.forEach((slide,i)=>{const button=el('button','thumb'+(slide.thumbnailCrop?' crop':'')+(i===c.hero.initialSlide?' selected':''));button.dataset.project=i;button.setAttribute('aria-label',slide.title);button.setAttribute('aria-pressed',String(i===c.hero.initialSlide));const image=el('img');image.src=slide.thumbnail||window.heroSlideMedia(slide).poster;image.alt=slide.thumbnailAlt||slide.title;button.append(image);thumbs.append(button)});
+  const initial=c.hero.slides[c.hero.initialSlide]||c.hero.slides[0];q('#project').src=window.heroSlideMedia(initial).poster;
+  const card=q('.project-card'),cardImage=card.querySelector('img');cardImage.src=initial.cardImage||window.heroSlideMedia(initial).poster;cardImage.alt=initial.title;if(!initial.cardCrop)cardImage.style.cssText='width:100%;height:100%;left:0;top:0;object-fit:cover';card.setAttribute('aria-label','Посмотреть '+initial.title);
   q('.socials').replaceChildren();c.hero.socials.forEach(item=>{const button=el('button','fx',item.label);button.dataset.social=item.label;if(item.url)button.dataset.url=item.url;q('.socials').append(button)});
   const siteFooter=q('.site-footer');
   if(siteFooter){

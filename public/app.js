@@ -239,15 +239,35 @@ async function bootSite(){
       assembleThumbnails()
     ]);
   }
-  finally{hero.inert=false;document.documentElement.classList.remove('slide-pending')}
+  finally{hero.inert=false;document.documentElement.classList.remove('slide-pending');playHeroVideo()}
 }
 document.addEventListener('pointerdown',()=>{unlocked=true},{once:true});document.addEventListener('keydown',()=>{unlocked=true},{once:true});
 document.querySelectorAll('button,a').forEach(el=>{el.addEventListener('pointerenter',()=>{sound();if(el.classList.contains('fx'))reveal(el)});el.addEventListener('focus',()=>{if(el.classList.contains('fx'))reveal(el)})});
 updateSound();
 const thumbs=[...document.querySelectorAll('.thumb')],project=document.querySelector('#project'),card=document.querySelector('.project-card'),viewer=document.querySelector('#viewer');let current=window.SITE_CONTENT.hero.initialSlide;
-const pixelCanvas=document.createElement('canvas');pixelCanvas.className='pixel-transition';pixelCanvas.hidden=true;pixelCanvas.setAttribute('aria-hidden','true');project.after(pixelCanvas);
+const heroVideo=document.querySelector('#project-video'),viewerVideo=viewer.querySelector('video');
+const pixelCanvas=document.createElement('canvas');pixelCanvas.className='pixel-transition';pixelCanvas.hidden=true;pixelCanvas.setAttribute('aria-hidden','true');heroVideo.after(pixelCanvas);
 const pixelContext=pixelCanvas.getContext('2d');
-const slideSources=window.SITE_CONTENT.hero.slides.map(slide=>slide.image);
+const slideMedia=window.SITE_CONTENT.hero.slides.map(window.heroSlideMedia);
+const slideSources=slideMedia.map(media=>media.poster);
+function playHeroVideo(){
+  const media=slideMedia[current];
+  if(reduced||!media.video){
+    heroVideo.hidden=true;
+    if(heroVideo.hasAttribute('src')){
+      heroVideo.removeAttribute('src');
+      heroVideo.load();
+    }
+    return;
+  }
+  if(heroVideo.getAttribute('src')!==media.video){
+    heroVideo.hidden=true;
+    heroVideo.poster=media.poster;
+    heroVideo.src=media.video;
+  }
+  heroVideo.play().catch(()=>{});
+}
+heroVideo.addEventListener('playing',()=>{heroVideo.hidden=false});
 const slideImages=new Map();let slideRequest=0,slideFrame=0;
 function loadSlide(src){if(!slideImages.has(src)){const image=new Image();image.src=src;const ready=image.decode().then(()=>image).catch(error=>{slideImages.delete(src);throw error});slideImages.set(src,ready)}return slideImages.get(src)}
 function drawPixels(image,blockSize){
@@ -309,22 +329,23 @@ async function assembleThumbnails(){
     switcher.style.visibility='visible';
   }
 }
-function updateSelection(index){thumbs.forEach((b,i)=>{b.classList.toggle('selected',i===index);b.setAttribute('aria-pressed',i===index)});const slide=window.SITE_CONTENT.hero.slides[index],img=card.querySelector('img');img.src=slide.cardImage||slide.image;img.style.cssText=slide.cardCrop?'':'width:100%;height:100%;left:0;top:0;object-fit:cover';card.setAttribute('aria-label','Посмотреть '+slide.title)}
+function updateSelection(index){thumbs.forEach((b,i)=>{b.classList.toggle('selected',i===index);b.setAttribute('aria-pressed',i===index)});const slide=window.SITE_CONTENT.hero.slides[index],img=card.querySelector('img');img.src=slide.cardImage||slideMedia[index].poster;img.style.cssText=slide.cardCrop?'':'width:100%;height:100%;left:0;top:0;object-fit:cover';card.setAttribute('aria-label','Посмотреть '+slide.title)}
 async function choose(index){
   const request=++slideRequest;
   cancelAnimationFrame(slideFrame);pixelCanvas.hidden=true;project.style.visibility='';
-  if(index===current)return;
+  if(index===current){playHeroVideo();return}
   let outgoing,incoming;
-  try{[outgoing,incoming]=await Promise.all([loadSlide(project.src),loadSlide(slideSources[index])])}catch{return}
+  try{[outgoing,incoming]=await Promise.all([loadSlide(project.src),loadSlide(slideSources[index])])}catch{if(request===slideRequest)playHeroVideo();return}
   if(request!==slideRequest)return;
+  heroVideo.pause();heroVideo.hidden=true;
   current=index;updateSelection(index);
-  if(reduced||!pixelContext){project.src=incoming.src;return}
+  if(reduced||!pixelContext){project.src=incoming.src;playHeroVideo();return}
   drawPixels(outgoing,1);pixelCanvas.hidden=false;project.style.visibility='hidden';project.src=incoming.src;
   const start=performance.now();
   function frame(now){
     if(request!==slideRequest)return;
     const progress=Math.min(1,(now-start)/window.SITE_CONTENT.effects.slideMs);
-    if(progress>=1){pixelCanvas.hidden=true;project.style.visibility='';slideFrame=0;return}
+    if(progress>=1){pixelCanvas.hidden=true;project.style.visibility='';slideFrame=0;playHeroVideo();return}
     // Break the old slide into blocks, switch at the peak, then resolve the new one.
     const intensity=Math.sin(Math.PI*progress);
     drawPixels(progress<.5?outgoing:incoming,1+63*intensity*intensity);
@@ -333,7 +354,20 @@ async function choose(index){
   slideFrame=requestAnimationFrame(frame);
 }
 thumbs.forEach((b,i)=>b.onclick=()=>choose(i));
-function view(){viewer.querySelector('img').src=slideSources[current];viewer.showModal()}card.onclick=view;document.querySelector('#works').onclick=()=>{thumbs[0].focus();thumbs.forEach((el,i)=>el.animate([{transform:'translateY(0)'},{transform:'translateY(-10px)'},{transform:'translateY(0)'}],{duration:450,delay:i*60}))};
+function view(){
+  const {poster,video}=slideMedia[current];
+  const image=viewer.querySelector('img');
+  image.hidden=Boolean(video);
+  viewerVideo.hidden=!video;
+  if(video){viewerVideo.poster=poster;viewerVideo.src=video}
+  else image.src=poster;
+  viewer.showModal();
+}
+viewer.addEventListener('close',()=>{
+  if(!viewerVideo.hasAttribute('src'))return;
+  viewerVideo.removeAttribute('src');
+  viewerVideo.load();
+});card.onclick=view;document.querySelector('#works').onclick=()=>{thumbs[0].focus();thumbs.forEach((el,i)=>el.animate([{transform:'translateY(0)'},{transform:'translateY(-10px)'},{transform:'translateY(0)'}],{duration:450,delay:i*60}))};
 const panel=document.querySelector('#panel');const copy={'Кто я такой':'ANDREIKO. Worldwide working. Est. 2009.','Как я работаю':'Смыслы, тексты, внимание к деталям. Только ручная работа. Без шаблонов.','С кем я работаю':'Для основателей, которые любят то, что создают.','Контакты':'Обсудим ваш проект.','Разработка стратегий':'Стратегия — отправная точка проекта.','Брендинг и айдентика':'Смыслы и внимание к деталям.','Сайты и лендинги':'Только ручная работа. Без шаблонов.','Маркетинг и продажи':'Обсудим задачи вашего бизнеса.','Реклама':'Обсудим задачи вашего бизнеса.'};Object.assign(copy,window.SITE_PANELS||{});function openPanel(title,text){panel.querySelector('h2').dataset.ready='';panel.querySelector('h2').textContent=title;panel.querySelector('.panel-copy').textContent=text;panel.showModal();panel.querySelectorAll('.fx').forEach(el=>reveal(el));reveal(panel.querySelector('h2'))}document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>openPanel(b.dataset.panel,copy[b.dataset.panel]));document.querySelectorAll('[data-social]').forEach(b=>b.onclick=()=>{if(b.dataset.url){window.open(b.dataset.url,'_blank','noopener,noreferrer');return}openPanel(b.dataset.social,'Связаться с '+window.SITE_CONTENT.principles.name+' можно в Telegram.')});document.querySelectorAll('dialog').forEach(d=>{d.querySelector('.close').onclick=()=>d.close();d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close()}})});
 // Measure rendered word rows, retaining responsive wrapping and accent spans.
 async function revealStatementLines(layer){
