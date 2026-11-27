@@ -15,6 +15,10 @@ function prepare(el){
   el.dataset.original=text;el.setAttribute('aria-label',text);el.dataset.ready='1';el.textContent='';
   text.split(/(\s+)/u).filter(Boolean).forEach(token=>{
     if(/^\s+$/u.test(token)){
+      if (el.hasAttribute('data-about')) {
+        el.append(token);
+        return;
+      }
       const gap=document.createElement('span');gap.className='word space-word';
       [...token].forEach(c=>appendSpace(gap,c===' '?'\u00a0':c));
       el.append(gap);return;
@@ -385,6 +389,35 @@ function initPrinciplesIntro(){
   observer.observe(section);
 }
 initPrinciplesIntro();
+
+function initAboutIntro() {
+  const section = document.querySelector('#about');
+  if (!section || section.hidden || reduced || !('IntersectionObserver' in window)) return;
+
+  const texts = section.querySelectorAll('[data-about].fx');
+  const duration = window.SITE_CONTENT.effects.heroTextMs;
+  const observer = new IntersectionObserver(async entries => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      const text = entry.target;
+      observer.unobserve(text);
+      try {
+        await revealLayer(text, duration);
+      } finally {
+        settleReveal(text);
+        text.style.removeProperty('visibility');
+      }
+    }
+  }, { rootMargin: '0px 0px -10% 0px' });
+
+  for (const text of texts) {
+    if (!text.textContent.trim()) continue;
+    text.style.visibility = 'hidden';
+    observer.observe(text);
+  }
+}
+
+initAboutIntro();
 // Cached film-grain tiles: animate without regenerating a full-screen ImageData.
 const canvas=document.querySelector('#grain'),ctx=canvas.getContext('2d');
 if(ctx){

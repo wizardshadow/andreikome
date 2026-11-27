@@ -191,3 +191,7 @@
     margin-top: 12px;
   }
 }
+
+.about .fx {
+  white-space: pre-wrap;
+}
