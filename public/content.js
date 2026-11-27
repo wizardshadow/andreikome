@@ -45,7 +45,11 @@
   if(processSection&&c.process){
     text('.process-label .fx',c.process.label);
     const titles=all('.process-headline>.fx');text(titles[0],c.process.titleAccent);text(titles[1],c.process.title);
-    text('.process-summary-term',c.process.term);text('.process-summary-cost',c.process.cost);
+    text('.process-summary-term',c.process.term);
+    const cost=c.process.cost;
+    const split=cost.indexOf(':')+1;
+    text('.process-cost-label',split ? cost.slice(0,split) : cost);
+    text('.process-cost-value',split ? cost.slice(split).trim().replace(/(\d)\s+(?=\d)/g,'$1\u00a0') : '');
     const bg=q('.process-bg img');if(bg&&c.process.background)bg.src=c.process.background;
     const cardTemplate=q('.process-card');
     if(cardTemplate&&Array.isArray(c.process.steps)){

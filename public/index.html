@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#000000"><meta name="description" content="ANDREIKO — стратегии, брендинг, сайты и маркетинг. Только ручная работа. Без шаблонов."><title>ANDREIKO — Agency</title><script>document.documentElement.classList.add('loading','slide-pending');window._loaderFallback=setTimeout(()=>document.documentElement.classList.remove('loading','slide-pending'),20000)</script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aldrich&family=Fira+Code:wght@400&family=IBM+Plex+Mono:wght@500&display=swap"><link rel="stylesheet" href="style.css?v=site-footer-1"><link rel="stylesheet" href="about.css?v=5"><link rel="stylesheet" href="footer.css?v=3"></head>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#000000"><meta name="description" content="ANDREIKO — стратегии, брендинг, сайты и маркетинг. Только ручная работа. Без шаблонов."><title>ANDREIKO — Agency</title><script>document.documentElement.classList.add('loading','slide-pending');window._loaderFallback=setTimeout(()=>document.documentElement.classList.remove('loading','slide-pending'),20000)</script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aldrich&family=Fira+Code:wght@400&family=IBM+Plex+Mono:wght@500&display=swap"><link rel="stylesheet" href="style.css?v=mobile-topbar-1"><link rel="stylesheet" href="about.css?v=5"><link rel="stylesheet" href="footer.css?v=4"></head>
 <body>
 <div class="preloader" role="status" aria-live="polite" aria-label="Загрузка сайта" data-phase="loading">
   <div class="preloader-container">
@@ -25,7 +25,13 @@
 </div>
 <main class="hero">
   <div class="stage" aria-hidden="true"><img class="project" id="project" src="assets/work1.png" alt=""></div>
-  <header class="brand"><h1 class="fx">ANDREIKO</h1><p class="fx">AGENCY</p></header>
+  <header class="hero-header">
+    <div class="brand"><h1 class="fx">ANDREIKO</h1><p class="fx">AGENCY</p></div>
+    <button class="hero-menu-toggle" type="button" aria-controls="hero-navigation" aria-expanded="false" aria-label="Открыть меню">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="navigation" id="hero-navigation" aria-label="Основная навигация"><button class="active fx" id="works">Работы</button><button class="fx" data-panel="Кто я такой">Кто я такой</button><button class="fx" data-panel="Как я работаю">Как я работаю</button><button class="fx" data-panel="С кем я работаю">С кем я работаю</button><button class="fx" data-panel="Контакты">[ Контакты ]</button></nav>
+  </header>
   <p class="intro fx">Для основателей, которые любят то, что создают. Смыслы, тексты, внимание к деталям. Только ручная работа. Без шаблонов.</p>
   <div class="services" aria-label="Услуги">
     <img src="assets/line0.svg" alt=""><button class="fx" data-panel="Разработка стратегий">Разработка стратегий</button>
@@ -34,7 +40,6 @@
     <img src="assets/line1.svg" alt=""><button class="fx" data-panel="Маркетинг и продажи">Маркетинг и продажи</button>
     <img src="assets/line1.svg" alt="">
   </div>
-  <nav class="navigation" aria-label="Основная навигация"><button class="active fx" id="works">Работы</button><button class="fx" data-panel="Кто я такой">Кто я такой</button><button class="fx" data-panel="Как я работаю">Как я работаю</button><button class="fx" data-panel="С кем я работаю">С кем я работаю</button><button class="fx" data-panel="Контакты">[ Контакты ]</button></nav>
   <div class="thumbnails" aria-label="Выбрать проект">
     <button class="thumb" data-project="0" aria-label="Проект 1"><img src="assets/work3.png" alt="Infinity Frameworks"></button>
     <button class="thumb" data-project="1" aria-label="Проект 2"><img src="assets/work4.png" alt="Проект на белом фоне"></button>
@@ -152,7 +157,7 @@
   </div>
   <div class="process-summary" data-process-step>
     <p class="process-summary-term fx">средний срок: 1 месяц</p>
-    <p class="process-summary-cost fx">средняя стоимость: от 100 000₽</p>
+    <p class="process-summary-cost"><span class="process-cost-label fx">средняя стоимость:</span> <span class="process-cost-value fx">от 100 000₽</span></p>
   </div>
 </section>
 
@@ -225,4 +230,4 @@
 <canvas id="grain" aria-hidden="true"></canvas>
 <dialog id="panel"><button class="close fx" aria-label="Закрыть">Закрыть [ × ]</button><div class="panel-content"><p class="eyebrow fx">ANDREIKO / AGENCY</p><h2></h2><p class="panel-copy"></p><a class="contact-link fx" href="https://t.me/arturandreiko" target="_blank" rel="noopener">Написать в Telegram ↗</a></div></dialog>
 <dialog id="viewer"><button class="close fx" aria-label="Закрыть проект">Закрыть [ × ]</button><img alt="Выбранный проект"></dialog>
-<script src="content-defaults.js?v=3"></script><!-- cms-content --><script src="content-schema.js?v=3"></script><script src="content.js?v=site-footer-1"></script><script src="app.js?v=footer-decoder-3"></script><script src="works.js"></script><script src="process.js"></script><script src="faq.js"></script></body></html>
+<script src="content-defaults.js?v=3"></script><!-- cms-content --><script src="content-schema.js?v=3"></script><script src="content.js?v=mobile-topbar-1"></script><script src="app.js?v=mobile-topbar-1"></script><script src="works.js"></script><script src="process.js"></script><script src="faq.js"></script></body></html>

@@ -521,6 +521,54 @@ function initFooterDecoder() {
 
 initFooterDecoder();
 
+function initMobileMenu() {
+  const header = document.querySelector('.hero-header');
+  if (!header) return;
+
+  const toggle = header.querySelector('.hero-menu-toggle');
+  const navigation = header.querySelector('.navigation');
+  const mobile = matchMedia('(max-width: 900px)');
+
+  function setMenu(open) {
+    header.classList.toggle('is-menu-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню');
+  }
+
+  function isOpen() {
+    return toggle.getAttribute('aria-expanded') === 'true';
+  }
+
+  toggle.addEventListener('click', () => setMenu(!isOpen()));
+  mobile.addEventListener('change', () => setMenu(false));
+
+  document.addEventListener('pointerdown', event => {
+    if (isOpen() && !header.contains(event.target)) setMenu(false);
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape' || !isOpen()) return;
+    setMenu(false);
+    toggle.focus({ preventScroll: true });
+  });
+
+  navigation.addEventListener('click', event => {
+    if (!isOpen() || !event.target.closest('button')) return;
+    setMenu(false);
+    const dialog = document.querySelector('dialog[open]');
+    if (dialog) {
+      dialog.addEventListener('close', () => {
+        if (mobile.matches) toggle.focus({ preventScroll: true });
+      }, { once: true });
+    } else {
+      toggle.focus({ preventScroll: true });
+    }
+  });
+}
+
+initMobileMenu();
+
+
 // Cached film-grain tiles: animate without regenerating a full-screen ImageData.
 const canvas=document.querySelector('#grain'),ctx=canvas.getContext('2d');
 if(ctx){
