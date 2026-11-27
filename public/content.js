@@ -7,6 +7,22 @@
   root.style.setProperty('--site-cursor','url('+JSON.stringify(c.effects.cursor)+')');
   text('.brand h1',c.hero.brand);text('.brand p',c.hero.agency);text('.intro',c.hero.intro);text('footer .details span:nth-child(1)',c.hero.footerLocation);text('footer .details span:nth-child(2)',c.hero.footerSince);
   const panels={};
+  const services=q('.services');
+  services.replaceChildren();
+  services.hidden=!c.hero.services.length;
+  function serviceDivider(src){
+    const line=el('img');
+    line.src='assets/'+src;
+    line.alt='';
+    return line;
+  }
+  c.hero.services.forEach((service,i)=>{
+    const label=el('span','fx',service.title);
+    label.setAttribute('role','listitem');
+    services.append(serviceDivider(i===0?'line0.svg':'line1.svg'),label);
+  });
+  if(c.hero.services.length)services.append(serviceDivider('line1.svg'));
+
   const nav=q('.navigation'),stickyNav=q('.sticky-navigation');
   nav.replaceChildren();
   function addNavigationLink(label,target,active=false){

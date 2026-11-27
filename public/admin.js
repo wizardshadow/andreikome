@@ -73,6 +73,10 @@
   function home(){
     const s=section('Название и описание');
     fields(s.fields,[['hero.brand','Первая часть названия'],['hero.agency','Вторая часть названия'],['hero.intro','Вводный текст','textarea'],['hero.footerLocation','Подпись внизу'],['hero.footerSince','Год / дополнительная подпись']]);
+    const services=section('Услуги');
+    config.hero.services.forEach((item,i)=>{
+      field(services.fields,`hero.services.${i}.title`,'Услуга '+(i+1));
+    });
   }
   async function capturePoster(file){
     const url=URL.createObjectURL(file);

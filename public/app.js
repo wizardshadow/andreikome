@@ -219,7 +219,7 @@ async function dismissPreloader(){
 async function bootSite(){
   const hero=document.querySelector('.hero');hero.inert=true;
   const brand=[hero.querySelector('.brand h1'),hero.querySelector('.brand p')];
-  const blocks=[...hero.querySelectorAll('.intro,.navigation,.sound,footer')]
+  const blocks=[...hero.querySelectorAll('.intro,.services,.navigation,.sound,footer')]
     .sort((a,b)=>{const ar=a.getBoundingClientRect(),br=b.getBoundingClientRect();return ar.top-br.top||ar.left-br.left});
   const layers=[hero.querySelector('.brand .header-logo'),...brand,...blocks];
   const sliderLayers=[...hero.querySelectorAll('.thumbnails,.project-card')];
