@@ -137,6 +137,7 @@
     vx=0;
     applyTransform();
     cancelWheelSettle();
+    if(x===0||x===-max)return;
     wheelStartSnap=initialSnap;
     wheelTimer=setTimeout(()=>{
       wheelTimer=0;
