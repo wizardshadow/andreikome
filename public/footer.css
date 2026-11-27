@@ -74,12 +74,32 @@
 }
 
 .site-footer .site-footer-code {
+  display: grid;
   width: min(20.4167cqw, 100%);
   margin-top: 2.727cqw;
+  padding: 0;
+  text-align: left;
   color: #4d4d4d;
   font: 400 clamp(9px, .625cqw, 14px)/1.35 "Fira Code", monospace;
   letter-spacing: .02125cqw;
   overflow-wrap: anywhere;
+}
+
+/* Keep the hover target the same size after the shorter message appears. */
+.site-footer-code > span,
+.site-footer-code::after {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.site-footer-code::after {
+  content: attr(data-encoded);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.site-footer .site-footer-code.is-decoded {
+  color: #ded9cd;
 }
 
 .site-footer .site-footer-cta {

@@ -418,6 +418,66 @@ function initAboutIntro() {
 }
 
 initAboutIntro();
+
+function initFooterDecoder() {
+  const button = document.querySelector('.site-footer-code');
+  if (!button) return;
+
+  const text = button.querySelector('span');
+  const encoded = text.textContent.trim();
+  const decoded = new TextDecoder().decode(Uint8Array.from(atob(encoded), char => char.charCodeAt(0)));
+  button.dataset.encoded = encoded;
+
+  let frame;
+  let decodedTarget = false;
+
+  function update() {
+    const showDecoded = button.matches(':hover, :focus-visible');
+    if (showDecoded === decodedTarget) return;
+    decodedTarget = showDecoded;
+    cancelAnimationFrame(frame);
+
+    const target = showDecoded ? decoded : encoded;
+    button.classList.toggle('is-decoded', showDecoded);
+    button.setAttribute('aria-label', showDecoded ? decoded : 'Зашифрованный текст');
+
+    if (reduced) {
+      text.textContent = target;
+      return;
+    }
+
+    const from = Array.from(text.textContent);
+    const to = Array.from(target);
+    const start = performance.now();
+    const duration = 380;
+
+    function draw(now) {
+      const progress = Math.min(1, (now - start) / duration);
+      if (progress === 1) {
+        text.textContent = target;
+        return;
+      }
+
+      const settled = Math.floor(progress * to.length);
+      const scrambling = Math.ceil(0.12 * to.length);
+      text.textContent = to.map((char, index) => {
+        if (index < settled || /\s/u.test(char)) return char;
+        if (index < settled + scrambling) return chars[Math.floor(Math.random() * chars.length)];
+        return from[index] ?? char;
+      }).join('');
+      frame = requestAnimationFrame(draw);
+    }
+    frame = requestAnimationFrame(draw);
+  }
+
+  button.addEventListener('pointerenter', update);
+  button.addEventListener('pointerleave', update);
+  button.addEventListener('focus', update);
+  button.addEventListener('blur', update);
+}
+
+initFooterDecoder();
+
 // Cached film-grain tiles: animate without regenerating a full-screen ImageData.
 const canvas=document.querySelector('#grain'),ctx=canvas.getContext('2d');
 if(ctx){
