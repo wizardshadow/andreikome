@@ -66,6 +66,52 @@ def remote_digest(host, user, password, path):
         return hashlib.file_digest(data, "sha256").hexdigest()
 
 
+def upload_verified(ftp, source, relative, release_id, host, user, password):
+    directory = PurePosixPath("/") / relative.parent
+    temporary = f".{relative.name}.{release_id}.upload"
+    remote_temp = directory / temporary
+    result = transfer(host, user, password, remote_temp, "--upload-file", str(source))
+    if result.returncode:
+        raise OSError(f"FTPS upload failed for {relative} (curl exit {result.returncode})")
+    with source.open("rb") as data:
+        digest = hashlib.file_digest(data, "sha256").hexdigest()
+    if remote_digest(host, user, password, remote_temp) != digest:
+        raise RuntimeError(f"Uploaded file failed verification: {relative}")
+    ftp.rename(temporary, relative.name)
+    print(f"Published {relative}", flush=True)
+
+
+def restore_cms_content(ftp, relative, default_digest, release_id, host, user, password):
+    # A matching stock file can be the result of an earlier deployment.
+    # The PHP CMS records the published content independently of that file.
+    published_path = PurePosixPath("/cms/published.json")
+    with tempfile.TemporaryFile() as record:
+        result = transfer(host, user, password, published_path, output=record)
+        if result.returncode == 78:
+            return
+        if result.returncode:
+            raise OSError(f"Could not read the CMS publication (curl exit {result.returncode})")
+        record.seek(0)
+        content = json.load(record).get("content")
+    if not isinstance(content, dict) or not content:
+        raise RuntimeError("The CMS publication is missing its content")
+
+    data = json.dumps(content, ensure_ascii=False, separators=(",", ":"))
+    data = data.replace("<", r"\u003c").replace("\u2028", r"\u2028").replace("\u2029", r"\u2029")
+    payload = f"window.SITE_DEFAULTS={data};\n".encode("utf-8")
+    if hashlib.sha256(payload).hexdigest() == default_digest:
+        return
+
+    with tempfile.TemporaryDirectory() as temp:
+        source = Path(temp) / relative.name
+        source.write_bytes(payload)
+        if remote_digest(host, user, password, PurePosixPath("/") / relative) != default_digest:
+            print("CMS content changed during recovery; preserving the current publication", flush=True)
+            return
+        upload_verified(ftp, source, relative, release_id, host, user, password)
+    print("Restored public content from the saved CMS publication", flush=True)
+
+
 def publish(ftp, files, release_id, host, user, password):
     for relative, source in files:
         directory = PurePosixPath("/") / relative.parent
@@ -78,19 +124,20 @@ def publish(ftp, files, release_id, host, user, password):
             if not str(error).startswith("550"):
                 raise
             remote_size = None
-        if remote_size == source.stat().st_size and remote_digest(host, user, password, directory / relative.name) == digest:
+
+        same_file = remote_size == source.stat().st_size and remote_digest(
+            host, user, password, directory / relative.name,
+        ) == digest
+        if relative == PurePosixPath("content-defaults.js") and remote_size is not None:
+            if same_file:
+                restore_cms_content(ftp, relative, digest, release_id, host, user, password)
+            print("Preserved the public CMS content file", flush=True)
+            continue
+        if same_file:
             continue
 
-        temporary = f".{relative.name}.{release_id}.upload"
         print(f"Uploading {relative}", flush=True)
-        remote_temp = directory / temporary
-        result = transfer(host, user, password, remote_temp, "--upload-file", str(source))
-        if result.returncode:
-            raise OSError(f"FTPS upload failed for {source} (curl exit {result.returncode})")
-        if remote_digest(host, user, password, remote_temp) != digest:
-            raise RuntimeError(f"Uploaded file failed verification: {relative}")
-        ftp.rename(temporary, relative.name)
-        print(f"Published {relative}", flush=True)
+        upload_verified(ftp, source, relative, release_id, host, user, password)
 
 
 def main():
