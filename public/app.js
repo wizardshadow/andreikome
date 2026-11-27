@@ -565,12 +565,25 @@ function initStickyHeader() {
   const menu = header.querySelector('.sticky-menu');
   const brand = document.querySelector('.hero-header .brand');
   const mobile = matchMedia('(max-width: 900px)');
+  const pixels = document.createElement('div');
+  pixels.className = 'sticky-menu-pixels';
+  pixels.setAttribute('aria-hidden', 'true');
+  const tileCount = 80;
+  for (let i = 0; i < tileCount; i++) {
+    const tile = document.createElement('span');
+    const order = (i * 37) % tileCount;
+    tile.style.setProperty('--pixel-delay', `${Math.round(order * 299 / (tileCount - 1))}ms`);
+    pixels.append(tile);
+  }
+  menu.append(pixels);
 
   function updateHeader() {
     header.classList.toggle('is-stuck', !mobile.matches && brand.getBoundingClientRect().bottom <= 0);
   }
 
   function setMenu(open) {
+    // Commit the closed layout before replaying the pixel reveal.
+    if (open) void menu.offsetHeight;
     header.classList.toggle('is-menu-open', open);
     toggle.setAttribute('aria-expanded', String(open));
     toggle.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню');
